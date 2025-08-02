@@ -1,0 +1,164 @@
+import { NextResponse } from "next/server"
+import { getServerSession } from "next-auth"
+import { z } from "zod"
+import { authOptions } from "@/lib/auth"
+import { prisma } from "@/lib/prisma"
+import { PersonalityEngine } from "@/lib/personality-engine"
+
+const messageSchema = z.object({
+  content: z.string().min(1).max(1000)
+})
+
+export async function POST(req: Request) {
+  try {
+    const session = await getServerSession(authOptions)
+    
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    }
+    
+    const body = await req.json()
+    const { content } = messageSchema.parse(body)
+    
+    // Check message limits for free tier
+    const profile = await prisma.profile.findUnique({
+      where: { userId: session.user.id },
+      include: { user: { include: { subscription: true } } }
+    })
+    
+    if (!profile) {
+      return NextResponse.json({ error: "Profile not found" }, { status: 404 })
+    }
+    
+    // Reset daily message count if needed
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
+    
+    if (profile.lastMessageReset < today) {
+      await prisma.profile.update({
+        where: { id: profile.id },
+        data: {
+          messagesUsedToday: 0,
+          lastMessageReset: today
+        }
+      })
+      profile.messagesUsedToday = 0
+    }
+    
+    // Check free tier limits
+    if (profile.user.subscription?.plan === "free" && profile.messagesUsedToday >= 50) {
+      return NextResponse.json(
+        { error: "Daily message limit reached. Upgrade to continue chatting!" },
+        { status: 429 }
+      )
+    }
+    
+    // Get or create conversation
+    let conversation = await prisma.conversation.findFirst({
+      where: {
+        userId: session.user.id,
+        endedAt: null
+      }
+    })
+    
+    if (!conversation) {
+      conversation = await prisma.conversation.create({
+        data: { userId: session.user.id }
+      })
+    }
+    
+    // Save user message
+    const userMessage = await prisma.message.create({
+      data: {
+        conversationId: conversation.id,
+        role: "user",
+        content
+      }
+    })
+    
+    // Get conversation history
+    const history = await prisma.message.findMany({
+      where: { conversationId: conversation.id },
+      orderBy: { createdAt: "asc" },
+      take: 20
+    })
+    
+    // Generate AI response
+    const engine = new PersonalityEngine()
+    const response = await engine.generateResponse(
+      content,
+      session.user.id,
+      history
+    )
+    
+    // Save AI response
+    const aiMessage = await prisma.message.create({
+      data: {
+        conversationId: conversation.id,
+        role: "assistant",
+        content: response.content,
+        sentiment: response.sentiment,
+        responseTime: Math.round(response.suggestedDelay)
+      }
+    })
+    
+    // Update user metrics
+    await prisma.profile.update({
+      where: { id: profile.id },
+      data: {
+        messageCount: { increment: 1 },
+        messagesUsedToday: { increment: 1 },
+        lastActiveAt: new Date(),
+        trustLevel: Math.min(100, profile.trustLevel + 0.5)
+      }
+    })
+    
+    // Track activity
+    await prisma.activity.create({
+      data: {
+        userId: session.user.id,
+        type: "message_sent",
+        metadata: {
+          sentiment: response.sentiment.primaryEmotion,
+          intensity: response.sentiment.emotionalIntensity
+        }
+      }
+    })
+    
+    // Check for conversion trigger
+    if (response.shouldTriggerConversion) {
+      await prisma.conversionEvent.create({
+        data: {
+          userId: session.user.id,
+          eventType: "conversion_trigger",
+          archetype: profile.archetype,
+          metadata: {
+            triggerType: "emotional_moment",
+            trustLevel: profile.trustLevel,
+            messageCount: profile.messageCount
+          }
+        }
+      })
+    }
+    
+    return NextResponse.json({
+      response: {
+        id: aiMessage.id,
+        role: aiMessage.role,
+        content: aiMessage.content,
+        createdAt: aiMessage.createdAt
+      },
+      messagesRemaining: profile.user.subscription?.plan === "free" 
+        ? 50 - profile.messagesUsedToday - 1 
+        : null,
+      shouldShowUpgrade: response.shouldTriggerConversion
+    })
+    
+  } catch (error) {
+    console.error("Message error:", error)
+    return NextResponse.json(
+      { error: "Failed to send message" },
+      { status: 500 }
+    )
+  }
+}

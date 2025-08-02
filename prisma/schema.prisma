@@ -1,0 +1,258 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+model User {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  emailVerified DateTime?
+  passwordHash  String?
+  name          String?
+  image         String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  // Relations
+  profile               Profile?
+  subscription          Subscription?
+  conversations         Conversation[]
+  memories              Memory[]
+  activities            Activity[]
+  payments              Payment[]
+  conversionEvents      ConversionEvent[]
+  personalityTestResult PersonalityTestResult?
+
+  // Auth
+  accounts Account[]
+  sessions Session[]
+}
+
+model Profile {
+  id          String   @id @default(cuid())
+  userId      String   @unique
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Basic Info
+  displayName String?
+  avatar      String?
+  bio         String?
+  timezone    String   @default("UTC")
+  dateOfBirth DateTime?
+
+  // Personality
+  personalityTest   Json? // Test answers
+  archetype         String? // Calculated archetype
+  personalityScores Json? // Dimension scores
+
+  // Companion
+  companionName       String  @default("Luna")
+  companionAvatar     String?
+  companionVoice      String?
+  companionPersonality Json? // AI personality config
+
+  // Metrics
+  trustLevel      Float    @default(0)
+  messageCount    Int      @default(0)
+  lastActiveAt    DateTime?
+  messagesUsedToday Int    @default(0)
+  lastMessageReset  DateTime @default(now())
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Conversation {
+  id     String @id @default(cuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  messages      Message[]
+  summary       String? // AI-generated summary
+  emotionalTone String? // Overall emotional tone
+  topics        String[] // Detected topics
+
+  startedAt DateTime  @default(now())
+  endedAt   DateTime?
+  updatedAt DateTime  @updatedAt
+
+  @@index([userId, startedAt])
+}
+
+model Message {
+  id             String       @id @default(cuid())
+  conversationId String
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+
+  role    String // 'user' or 'assistant'
+  content String @db.Text
+
+  // Rich content
+  attachments Json? // Photos, voice, etc
+  formatting  Json? // Bold, italic, etc
+
+  // Analysis
+  sentiment Json? // Emotion analysis
+  keywords  String[] // Important words
+
+  // Metadata
+  tokens       Int?
+  responseTime Int? // ms to generate
+
+  createdAt DateTime  @default(now())
+  editedAt  DateTime?
+  deletedAt DateTime?
+
+  @@index([conversationId, createdAt])
+}
+
+model Memory {
+  id     String @id @default(cuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  type     String // 'short', 'medium', 'long', 'episodic'
+  category String // 'fact', 'preference', 'event', etc
+
+  content      String @db.Text
+  context      Json // Conversation context
+  significance Float // 0-10 importance score
+
+  // Retrieval
+  embedding Float[] // Vector for similarity search
+  keywords  String[]
+
+  createdAt  DateTime  @default(now())
+  recalledAt DateTime?
+  expiresAt  DateTime?
+
+  @@index([userId, type, significance])
+}
+
+model PersonalityTestResult {
+  id     String @id @default(cuid())
+  userId String @unique
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Test data
+  answers     Json // All question answers
+  completedAt DateTime
+  timeSpent   Int // Seconds to complete
+
+  // Scores
+  dimensions         Json // All dimension scores
+  archetype          String // Primary archetype
+  secondaryArchetype String? // Secondary traits
+
+  // Analysis
+  strengths            String[]
+  growthAreas          String[]
+  compatibilityFactors Json
+
+  createdAt DateTime @default(now())
+}
+
+model Subscription {
+  id     String @id @default(cuid())
+  userId String @unique
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  stripeCustomerId     String  @unique
+  stripeSubscriptionId String? @unique
+
+  plan   String // "free", "basic", "premium", "ultimate"
+  status String // "active", "canceled", "past_due"
+
+  currentPeriodEnd DateTime
+  cancelAtPeriodEnd Boolean @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Payment {
+  id     String @id @default(cuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  stripePaymentIntentId String @unique
+  amount                Int // in cents
+  currency              String
+  status                String
+
+  createdAt DateTime @default(now())
+}
+
+model Activity {
+  id     String @id @default(cuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  type     String // 'login', 'message_sent', 'profile_update', etc
+  metadata Json?
+
+  createdAt DateTime @default(now())
+
+  @@index([userId, type, createdAt])
+}
+
+model ConversionEvent {
+  id     String @id @default(cuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  eventType String // 'test_start', 'test_complete', 'first_message', etc
+  source    String? // UTM source
+  archetype String? // User's personality type
+
+  metadata Json // Event-specific data
+
+  createdAt DateTime @default(now())
+
+  @@index([userId, eventType])
+  @@index([archetype, eventType])
+}
+
+// NextAuth models
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
