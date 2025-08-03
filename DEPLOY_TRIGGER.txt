@@ -1,0 +1,5 @@
+Deploy trigger: 2025-08-03 18:40:00
+Force rebuild to apply fixes for:
+- PWA icon 404 errors
+- Service worker cache failures
+- Results page undefined map errors

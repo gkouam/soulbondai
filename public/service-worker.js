@@ -1,8 +1,6 @@
-const CACHE_NAME = 'soulbond-ai-v1';
+const CACHE_NAME = 'soulbond-ai-v2'; // Increment version to force cache update
 const urlsToCache = [
   '/',
-  '/dashboard',
-  '/dashboard/chat',
   '/offline.html'
 ];
 
@@ -44,30 +42,56 @@ self.addEventListener('activate', event => {
 
 // Fetch event - serve from cache when offline
 self.addEventListener('fetch', event => {
+  // Skip non-GET requests
+  if (event.request.method !== 'GET') {
+    return;
+  }
+
+  // Skip cross-origin requests
+  const url = new URL(event.request.url);
+  if (url.origin !== self.location.origin) {
+    return;
+  }
+
+  // Skip API and Next.js specific routes
+  if (url.pathname.startsWith('/api/') || 
+      url.pathname.startsWith('/_next/') ||
+      url.pathname.includes('.json')) {
+    return;
+  }
+
   event.respondWith(
-    fetch(event.request)
-      .then(response => {
-        // Cache successful responses
-        if (!response || response.status !== 200 || response.type !== 'basic') {
-          return response;
+    caches.match(event.request)
+      .then(cachedResponse => {
+        if (cachedResponse) {
+          // Return cached response and update in background
+          fetch(event.request).then(response => {
+            if (response && response.status === 200) {
+              caches.open(CACHE_NAME).then(cache => {
+                cache.put(event.request, response.clone());
+              });
+            }
+          }).catch(() => {});
+          return cachedResponse;
         }
 
-        const responseToCache = response.clone();
-        caches.open(CACHE_NAME)
-          .then(cache => {
-            cache.put(event.request, responseToCache);
-          });
-
-        return response;
-      })
-      .catch(() => {
-        // Return cached version or offline page
-        return caches.match(event.request)
+        // No cache, fetch from network
+        return fetch(event.request)
           .then(response => {
-            if (response) {
+            if (!response || response.status !== 200 || response.type !== 'basic') {
               return response;
             }
-            
+
+            const responseToCache = response.clone();
+            caches.open(CACHE_NAME)
+              .then(cache => {
+                cache.put(event.request, responseToCache);
+              })
+              .catch(() => {});
+
+            return response;
+          })
+          .catch(() => {
             // Return offline page for navigation requests
             if (event.request.mode === 'navigate') {
               return caches.match('/offline.html');
