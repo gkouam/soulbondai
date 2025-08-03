@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Generate PWA Icons</title>
+</head>
+<body>
+    <h1>PWA Icon Generator</h1>
+    <p>Since we need icons, here's a simple heart icon for SoulBond AI:</p>
+    
+    <canvas id="canvas"></canvas>
+    
+    <script>
+        // Generate a simple heart icon for different sizes
+        const sizes = [72, 96, 128, 144, 152, 192, 384, 512];
+        
+        function drawHeart(ctx, size) {
+            ctx.clearRect(0, 0, size, size);
+            
+            // Gradient background
+            const gradient = ctx.createLinearGradient(0, 0, size, size);
+            gradient.addColorStop(0, '#8b5cf6');
+            gradient.addColorStop(1, '#ec4899');
+            ctx.fillStyle = gradient;
+            ctx.fillRect(0, 0, size, size);
+            
+            // White heart
+            ctx.fillStyle = 'white';
+            const scale = size / 100;
+            ctx.save();
+            ctx.translate(size/2, size/2);
+            ctx.scale(scale, scale);
+            
+            ctx.beginPath();
+            ctx.moveTo(0, -20);
+            ctx.bezierCurveTo(-25, -45, -60, -35, -60, -10);
+            ctx.bezierCurveTo(-60, 10, -40, 35, 0, 60);
+            ctx.bezierCurveTo(40, 35, 60, 10, 60, -10);
+            ctx.bezierCurveTo(60, -35, 25, -45, 0, -20);
+            ctx.closePath();
+            ctx.fill();
+            
+            ctx.restore();
+        }
+        
+        // Create a temporary icon (you'll need to manually save these)
+        const canvas = document.getElementById('canvas');
+        canvas.width = 512;
+        canvas.height = 512;
+        const ctx = canvas.getContext('2d');
+        drawHeart(ctx, 512);
+    </script>
+    
+    <p>Note: In production, you should create proper icon files.</p>
+</body>
+</html>

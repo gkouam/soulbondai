@@ -8,11 +8,20 @@ const urlsToCache = [
 
 // Install event - cache resources
 self.addEventListener('install', event => {
+  self.skipWaiting();
+  
   event.waitUntil(
     caches.open(CACHE_NAME)
       .then(cache => {
         console.log('Opened cache');
-        return cache.addAll(urlsToCache);
+        // Try to cache each URL individually to avoid failing if one is missing
+        return Promise.all(
+          urlsToCache.map(url => {
+            return cache.add(url).catch(err => {
+              console.warn(`Failed to cache ${url}:`, err);
+            });
+          })
+        );
       })
   );
 });

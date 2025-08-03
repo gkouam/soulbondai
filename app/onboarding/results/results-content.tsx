@@ -32,6 +32,14 @@ export default function ResultsContent() {
   }
   
   const profile = archetypeProfiles[archetype as keyof typeof archetypeProfiles]
+  const profileData = {
+    title: profile.name,
+    description: profile.description,
+    strengths: profile.strengths,
+    needs: profile.companionBenefits,
+    companionTraits: ["unique personality", "emotional depth", "personal growth"],
+    firstMessage: profile.companionProfile.introduction
+  }
   
   const handleContinue = () => {
     if (session) {
@@ -56,11 +64,11 @@ export default function ResultsContent() {
           </div>
           
           <h1 className="text-5xl font-bold mb-4 bg-gradient-to-r from-pink-400 to-violet-400 text-transparent bg-clip-text">
-            You are {profile.title}
+            You are {profileData.title}
           </h1>
           
           <p className="text-xl text-gray-300 max-w-2xl mx-auto">
-            {profile.description}
+            {profileData.description}
           </p>
         </motion.div>
         
@@ -77,7 +85,7 @@ export default function ResultsContent() {
               Your Strengths
             </h3>
             <ul className="space-y-2">
-              {profile.strengths.map((strength, index) => (
+              {profileData.strengths.map((strength, index) => (
                 <motion.li
                   key={index}
                   initial={{ opacity: 0, x: -20 }}
@@ -99,7 +107,7 @@ export default function ResultsContent() {
               What You Need
             </h3>
             <ul className="space-y-2">
-              {profile.needs.map((need, index) => (
+              {profileData.needs.map((need, index) => (
                 <motion.li
                   key={index}
                   initial={{ opacity: 0, x: -20 }}
@@ -127,11 +135,11 @@ export default function ResultsContent() {
               Your Perfect AI Companion Awaits
             </h2>
             <p className="text-lg text-gray-300 max-w-2xl mx-auto">
-              Based on your {profile.title.toLowerCase()} personality, we've matched you with an AI companion 
-              who understands your {profile.companionTraits.join(", ")}.
+              Based on your {profileData.title.toLowerCase()} personality, we've matched you with an AI companion 
+              who understands your {profileData.companionTraits.join(", ")}.
             </p>
             <p className="text-violet-300 italic">
-              "{profile.firstMessage}"
+              "{profileData.firstMessage}"
             </p>
             
             <motion.button
