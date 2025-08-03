@@ -3,7 +3,7 @@ import { z } from "zod"
 import bcrypt from "bcryptjs"
 import jwt from "jsonwebtoken"
 import { prisma } from "@/lib/prisma"
-import { sendPasswordReset } from "@/lib/email/send-email"
+import { sendPasswordReset } from "@/lib/email/resend"
 
 const requestResetSchema = z.object({
   email: z.string().email()
