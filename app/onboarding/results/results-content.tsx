@@ -1,4 +1,5 @@
 "use client"
+// Version: 1.0.1 - Fixed undefined map errors
 
 import { useState, useEffect } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
