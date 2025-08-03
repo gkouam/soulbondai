@@ -1,75 +1,65 @@
 "use client"
 
-import React from "react"
-import { Button } from "@/components/ui/button"
-import { AlertTriangle } from "lucide-react"
-import { logErrorBoundary } from "@/lib/logger"
+import React from 'react'
+import { useRouter } from 'next/navigation'
+import { AlertCircle } from 'lucide-react'
 
-interface Props {
+interface ErrorBoundaryProps {
   children: React.ReactNode
+  fallbackUrl?: string
 }
 
-interface State {
+interface ErrorBoundaryState {
   hasError: boolean
-  error?: Error
+  error: Error | null
 }
 
-export class ErrorBoundary extends React.Component<Props, State> {
-  constructor(props: Props) {
+export class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundaryState> {
+  constructor(props: ErrorBoundaryProps) {
     super(props)
-    this.state = { hasError: false }
+    this.state = { hasError: false, error: null }
   }
 
-  static getDerivedStateFromError(error: Error): State {
+  static getDerivedStateFromError(error: Error): ErrorBoundaryState {
     return { hasError: true, error }
   }
 
   componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
-    logErrorBoundary(error, errorInfo)
+    console.error('Error boundary caught:', error, errorInfo)
   }
 
   handleReset = () => {
-    this.setState({ hasError: false, error: undefined })
+    this.setState({ hasError: false, error: null })
+    if (this.props.fallbackUrl) {
+      window.location.href = this.props.fallbackUrl
+    }
   }
 
   render() {
     if (this.state.hasError) {
       return (
         <div className="min-h-screen bg-gradient-to-br from-gray-950 via-gray-900 to-gray-950 flex items-center justify-center p-4">
-          <div className="max-w-md w-full bg-gray-900/50 backdrop-blur-sm border border-gray-800 rounded-lg p-8 text-center">
-            <AlertTriangle className="w-12 h-12 text-red-500 mx-auto mb-4" />
-            <h1 className="text-2xl font-bold text-white mb-2">
-              Oops! Something went wrong
-            </h1>
-            <p className="text-gray-400 mb-6">
-              We encountered an unexpected error. Don't worry, your data is safe.
+          <div className="max-w-md w-full space-y-4 text-center">
+            <div className="inline-flex items-center justify-center w-16 h-16 bg-red-500/20 rounded-full mb-4">
+              <AlertCircle className="w-8 h-8 text-red-400" />
+            </div>
+            <h2 className="text-2xl font-bold text-white">Something went wrong</h2>
+            <p className="text-gray-400">
+              We encountered an error loading this page. Please try again.
             </p>
-            
-            {process.env.NODE_ENV === "development" && this.state.error && (
-              <details className="mb-6 text-left">
-                <summary className="cursor-pointer text-sm text-gray-500 hover:text-gray-400">
-                  Error details (development only)
-                </summary>
-                <pre className="mt-2 text-xs text-red-400 bg-gray-950 p-2 rounded overflow-auto">
-                  {this.state.error.message}
-                  {this.state.error.stack}
-                </pre>
-              </details>
-            )}
-            
-            <div className="flex gap-4 justify-center">
-              <Button
+            <div className="flex gap-3 justify-center">
+              <button
                 onClick={this.handleReset}
-                variant="outline"
+                className="px-6 py-2 bg-violet-600 text-white rounded-lg hover:bg-violet-700 transition-colors"
               >
                 Try Again
-              </Button>
-              <Button
-                onClick={() => window.location.href = "/"}
-                className="bg-gradient-to-r from-violet-600 to-pink-600 hover:from-violet-700 hover:to-pink-700"
+              </button>
+              <button
+                onClick={() => window.location.href = '/'}
+                className="px-6 py-2 bg-gray-700 text-white rounded-lg hover:bg-gray-600 transition-colors"
               >
                 Go Home
-              </Button>
+              </button>
             </div>
           </div>
         </div>

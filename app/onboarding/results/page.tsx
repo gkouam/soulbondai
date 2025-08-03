@@ -2,15 +2,18 @@
 
 import { Suspense } from "react"
 import ResultsContent from "./results-content"
+import { ErrorBoundary } from "@/components/error-boundary"
 
 export default function ResultsPage() {
   return (
-    <Suspense fallback={
-      <div className="min-h-screen bg-gradient-to-br from-gray-950 via-gray-900 to-gray-950 flex items-center justify-center">
-        <div className="animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-violet-500"></div>
-      </div>
-    }>
-      <ResultsContent />
-    </Suspense>
+    <ErrorBoundary fallbackUrl="/onboarding/personality-test">
+      <Suspense fallback={
+        <div className="min-h-screen bg-gradient-to-br from-gray-950 via-gray-900 to-gray-950 flex items-center justify-center">
+          <div className="animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-violet-500"></div>
+        </div>
+      }>
+        <ResultsContent />
+      </Suspense>
+    </ErrorBoundary>
   )
 }

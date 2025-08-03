@@ -21,6 +21,7 @@ export default function RootLayout({
         <link rel="manifest" href="/manifest.json" />
         <meta name="theme-color" content="#8b5cf6" />
         <link rel="apple-touch-icon" href="/icons/icon-192x192.png" />
+        {/* Service worker temporarily disabled until deployment is complete
         <script dangerouslySetInnerHTML={{
           __html: `
             if ('serviceWorker' in navigator) {
@@ -30,6 +31,7 @@ export default function RootLayout({
             }
           `
         }} />
+        */}
       </head>
       <body className={inter.className}>
         <Providers>{children}</Providers>
