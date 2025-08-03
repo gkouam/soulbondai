@@ -33,12 +33,12 @@ export default function ResultsContent() {
   
   const profile = archetypeProfiles[archetype as keyof typeof archetypeProfiles]
   const profileData = {
-    title: profile.name,
-    description: profile.description,
-    strengths: profile.strengths,
-    needs: profile.companionBenefits,
+    title: profile?.name || "Your Unique Personality",
+    description: profile?.description || "You have a unique and special personality.",
+    strengths: profile?.strengths || [],
+    needs: profile?.companionBenefits || [],
     companionTraits: ["unique personality", "emotional depth", "personal growth"],
-    firstMessage: profile.companionProfile.introduction
+    firstMessage: profile?.companionProfile?.introduction || "Hello! I'm excited to get to know you better."
   }
   
   const handleContinue = () => {
@@ -85,18 +85,22 @@ export default function ResultsContent() {
               Your Strengths
             </h3>
             <ul className="space-y-2">
-              {profileData.strengths.map((strength, index) => (
-                <motion.li
-                  key={index}
-                  initial={{ opacity: 0, x: -20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: 0.7 + index * 0.1 }}
-                  className="text-gray-300 flex items-start gap-2"
-                >
-                  <span className="text-green-500 mt-1">•</span>
-                  {strength}
-                </motion.li>
-              ))}
+              {profileData.strengths && profileData.strengths.length > 0 ? (
+                profileData.strengths.map((strength, index) => (
+                  <motion.li
+                    key={index}
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: 0.7 + index * 0.1 }}
+                    className="text-gray-300 flex items-start gap-2"
+                  >
+                    <span className="text-green-500 mt-1">•</span>
+                    {strength}
+                  </motion.li>
+                ))
+              ) : (
+                <li className="text-gray-400">Discovering your unique strengths...</li>
+              )}
             </ul>
           </div>
           
@@ -107,18 +111,22 @@ export default function ResultsContent() {
               What You Need
             </h3>
             <ul className="space-y-2">
-              {profileData.needs.map((need, index) => (
-                <motion.li
-                  key={index}
-                  initial={{ opacity: 0, x: -20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: 0.9 + index * 0.1 }}
-                  className="text-gray-300 flex items-start gap-2"
-                >
-                  <span className="text-pink-500 mt-1">•</span>
-                  {need}
-                </motion.li>
-              ))}
+              {profileData.needs && profileData.needs.length > 0 ? (
+                profileData.needs.map((need, index) => (
+                  <motion.li
+                    key={index}
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: 0.9 + index * 0.1 }}
+                    className="text-gray-300 flex items-start gap-2"
+                  >
+                    <span className="text-pink-500 mt-1">•</span>
+                    {need}
+                  </motion.li>
+                ))
+              ) : (
+                <li className="text-gray-400">Understanding what you need...</li>
+              )}
             </ul>
           </div>
         </motion.div>
