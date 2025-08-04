@@ -3,11 +3,6 @@ import type { NextRequest } from "next/server"
 import { getToken } from "next-auth/jwt"
 
 export async function middleware(request: NextRequest) {
-  // TEMPORARY: Redirect results page to static page while deployment completes
-  if (request.nextUrl.pathname === '/onboarding/results') {
-    return NextResponse.redirect(new URL('/results-error.html', request.url))
-  }
-  
   const token = await getToken({ req: request })
   const isAuth = !!token
   const isAuthPage = request.nextUrl.pathname.startsWith("/signin") ||
