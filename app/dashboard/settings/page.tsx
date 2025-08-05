@@ -40,6 +40,10 @@ type ProfileSettings = {
   notificationsEnabled: boolean
   emailNotifications: boolean
   soundEnabled: boolean
+  voiceEnabled: boolean
+  selectedVoice: string
+  autoPlayVoice: boolean
+  voiceSpeed: number
 }
 
 export default function SettingsPage() {
@@ -59,7 +63,11 @@ export default function SettingsPage() {
     responseSpeed: "normal",
     notificationsEnabled: true,
     emailNotifications: true,
-    soundEnabled: true
+    soundEnabled: true,
+    voiceEnabled: false,
+    selectedVoice: "alloy",
+    autoPlayVoice: false,
+    voiceSpeed: 1.0
   })
 
   useEffect(() => {
@@ -89,7 +97,11 @@ export default function SettingsPage() {
           preferredTopics: data.preferredTopics || [],
           conversationStyle: data.conversationStyle || "casual",
           creativityLevel: data.creativityLevel || 50,
-          emotionalDepth: data.emotionalDepth || 50
+          emotionalDepth: data.emotionalDepth || 50,
+          voiceEnabled: data.voiceEnabled || false,
+          selectedVoice: data.selectedVoice || "alloy",
+          autoPlayVoice: data.autoPlayVoice || false,
+          voiceSpeed: data.voiceSpeed || 1.0
         }))
       }
     } catch (error) {
@@ -113,7 +125,11 @@ export default function SettingsPage() {
             preferredTopics: settings.preferredTopics,
             conversationStyle: settings.conversationStyle,
             creativityLevel: settings.creativityLevel,
-            emotionalDepth: settings.emotionalDepth
+            emotionalDepth: settings.emotionalDepth,
+            voiceEnabled: settings.voiceEnabled,
+            selectedVoice: settings.selectedVoice,
+            autoPlayVoice: settings.autoPlayVoice,
+            voiceSpeed: settings.voiceSpeed
           })
         })
 
@@ -202,6 +218,10 @@ export default function SettingsPage() {
             <TabsTrigger value="notifications" className="gap-2">
               <Bell className="w-4 h-4" />
               Notifications
+            </TabsTrigger>
+            <TabsTrigger value="voice" className="gap-2">
+              <Volume2 className="w-4 h-4" />
+              Voice
             </TabsTrigger>
             <TabsTrigger value="subscription" className="gap-2">
               <CreditCard className="w-4 h-4" />
@@ -398,6 +418,101 @@ export default function SettingsPage() {
                     }
                   />
                 </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="voice" className="space-y-4">
+            <Card className="bg-gray-900/50 backdrop-blur-sm border-gray-800">
+              <CardHeader>
+                <CardTitle>Voice Settings</CardTitle>
+                <CardDescription>
+                  Configure voice playback for AI messages (Premium feature)
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div className="flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <Label>Enable Voice Messages</Label>
+                    <p className="text-sm text-gray-500">
+                      Convert AI messages to speech
+                    </p>
+                  </div>
+                  <Switch
+                    checked={settings.voiceEnabled || false}
+                    onCheckedChange={(checked) => 
+                      setSettings(prev => ({ ...prev, voiceEnabled: checked }))
+                    }
+                  />
+                </div>
+
+                {settings.voiceEnabled && (
+                  <>
+                    <div className="space-y-2">
+                      <Label htmlFor="voice-selection">AI Voice</Label>
+                      <Select
+                        value={settings.selectedVoice || "alloy"}
+                        onValueChange={(value) => setSettings(prev => ({ ...prev, selectedVoice: value }))}
+                      >
+                        <SelectTrigger className="bg-gray-800 border-gray-700">
+                          <SelectValue placeholder="Select voice" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="alloy">Alloy (Neutral)</SelectItem>
+                          <SelectItem value="echo">Echo (Masculine)</SelectItem>
+                          <SelectItem value="fable">Fable (British)</SelectItem>
+                          <SelectItem value="onyx">Onyx (Deep)</SelectItem>
+                          <SelectItem value="nova">Nova (Feminine)</SelectItem>
+                          <SelectItem value="shimmer">Shimmer (Soft)</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div className="flex items-center justify-between">
+                      <div className="space-y-0.5">
+                        <Label>Auto-play Voice</Label>
+                        <p className="text-sm text-gray-500">
+                          Automatically play voice for new messages
+                        </p>
+                      </div>
+                      <Switch
+                        checked={settings.autoPlayVoice || false}
+                        onCheckedChange={(checked) => 
+                          setSettings(prev => ({ ...prev, autoPlayVoice: checked }))
+                        }
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <div className="flex justify-between">
+                        <Label>Voice Speed</Label>
+                        <span className="text-sm text-gray-400">{settings.voiceSpeed || 1.0}x</span>
+                      </div>
+                      <Slider
+                        value={[settings.voiceSpeed || 1.0]}
+                        onValueChange={([value]) => setSettings(prev => ({ ...prev, voiceSpeed: value }))}
+                        min={0.5}
+                        max={2.0}
+                        step={0.1}
+                        className="py-4"
+                      />
+                      <div className="flex justify-between text-xs text-gray-500">
+                        <span>Slower</span>
+                        <span>Normal</span>
+                        <span>Faster</span>
+                      </div>
+                    </div>
+                  </>
+                )}
+
+                <Button 
+                  onClick={() => handleSaveProfile()}
+                  disabled={loading}
+                  className="bg-gradient-to-r from-violet-600 to-pink-600 hover:from-violet-700 hover:to-pink-700"
+                >
+                  <Save className="w-4 h-4 mr-2" />
+                  Save Voice Settings
+                </Button>
               </CardContent>
             </Card>
           </TabsContent>

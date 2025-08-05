@@ -3,12 +3,13 @@
 import { useState, useEffect, useRef } from "react"
 import { useSession } from "next-auth/react"
 import { motion, AnimatePresence } from "framer-motion"
-import { Send, Smile, Heart, Sparkles } from "lucide-react"
+import { Send, Smile, Heart, Sparkles, Volume2, VolumeX } from "lucide-react"
 import { useSocket } from "@/hooks/use-socket"
 import { Message } from "@/components/message"
 import { TypingIndicator } from "@/components/typing-indicator"
 import { MessageLimitWarning } from "@/components/message-limit-warning"
 import { redirect } from "next/navigation"
+import { useToast } from "@/components/ui/toast-provider"
 
 export default function ChatPage() {
   const { data: session, status } = useSession()
@@ -21,6 +22,9 @@ export default function ChatPage() {
   const [isTyping, setIsTyping] = useState(false)
   const [companionMood, setCompanionMood] = useState("happy")
   const [isLoading, setIsLoading] = useState(true)
+  const [voiceEnabled, setVoiceEnabled] = useState(false)
+  const [selectedVoice, setSelectedVoice] = useState("alloy")
+  const { toast } = useToast()
   
   // Redirect if not authenticated
   useEffect(() => {
@@ -30,26 +34,37 @@ export default function ChatPage() {
     }
   }, [session, status])
   
-  // Load conversation history
+  // Load conversation history and voice settings
   useEffect(() => {
-    const loadConversation = async () => {
+    const loadData = async () => {
       try {
-        const res = await fetch("/api/chat/conversation")
-        if (res.ok) {
-          const data = await res.json()
+        // Load conversation
+        const [conversationRes, voiceSettingsRes] = await Promise.all([
+          fetch("/api/chat/conversation"),
+          fetch("/api/voice/settings")
+        ])
+        
+        if (conversationRes.ok) {
+          const data = await conversationRes.json()
           if (data.messages) {
             setMessages(data.messages)
           }
         }
+        
+        if (voiceSettingsRes.ok) {
+          const voiceData = await voiceSettingsRes.json()
+          setVoiceEnabled(voiceData.voiceEnabled || false)
+          setSelectedVoice(voiceData.selectedVoice || "alloy")
+        }
       } catch (error) {
-        console.error("Failed to load conversation:", error)
+        console.error("Failed to load data:", error)
       } finally {
         setIsLoading(false)
       }
     }
     
     if (session) {
-      loadConversation()
+      loadData()
     }
   }, [session])
   
@@ -174,9 +189,43 @@ export default function ChatPage() {
           </div>
         </div>
         
-        <button className="p-2 hover:bg-gray-100 rounded-full transition">
-          <Smile className="w-5 h-5 text-gray-600" />
-        </button>
+        <div className="flex items-center gap-1">
+          <button 
+            onClick={async () => {
+              const newVoiceEnabled = !voiceEnabled
+              setVoiceEnabled(newVoiceEnabled)
+              
+              // Save to server
+              try {
+                await fetch("/api/voice/settings", {
+                  method: "PATCH",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({ voiceEnabled: newVoiceEnabled })
+                })
+                
+                toast({
+                  type: "success",
+                  title: newVoiceEnabled ? "Voice enabled" : "Voice disabled",
+                  description: newVoiceEnabled ? "You can now play voice messages" : "Voice messages are turned off"
+                })
+              } catch (error) {
+                console.error("Failed to update voice settings:", error)
+              }
+            }}
+            className="p-2 hover:bg-gray-100 rounded-full transition"
+            title={voiceEnabled ? "Disable voice" : "Enable voice"}
+          >
+            {voiceEnabled ? (
+              <Volume2 className="w-5 h-5 text-purple-600" />
+            ) : (
+              <VolumeX className="w-5 h-5 text-gray-600" />
+            )}
+          </button>
+          
+          <button className="p-2 hover:bg-gray-100 rounded-full transition">
+            <Smile className="w-5 h-5 text-gray-600" />
+          </button>
+        </div>
       </div>
       
       {/* Messages */}
@@ -199,7 +248,13 @@ export default function ChatPage() {
         
         <AnimatePresence initial={false}>
           {messages.map((message) => (
-            <Message key={message.id} message={message} companionName={companionName} />
+            <Message 
+              key={message.id} 
+              message={message} 
+              companionName={companionName}
+              voiceEnabled={voiceEnabled}
+              selectedVoice={selectedVoice}
+            />
           ))}
         </AnimatePresence>
         

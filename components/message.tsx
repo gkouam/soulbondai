@@ -1,5 +1,9 @@
 import { motion } from "framer-motion"
 import { format } from "date-fns"
+import { Volume2, Loader2 } from "lucide-react"
+import { useState } from "react"
+import { VoiceMessage } from "@/components/voice-message"
+import { useToast } from "@/components/ui/toast-provider"
 
 interface MessageProps {
   message: {
@@ -7,12 +11,66 @@ interface MessageProps {
     role: "user" | "assistant"
     content: string
     createdAt: Date | string
+    audioUrl?: string
   }
   companionName: string
+  voiceEnabled?: boolean
+  selectedVoice?: string
 }
 
-export function Message({ message, companionName }: MessageProps) {
+export function Message({ message, companionName, voiceEnabled = false, selectedVoice = "alloy" }: MessageProps) {
   const isUser = message.role === "user"
+  const [isGeneratingAudio, setIsGeneratingAudio] = useState(false)
+  const [audioUrl, setAudioUrl] = useState(message.audioUrl)
+  const { toast } = useToast()
+  
+  const generateAudio = async () => {
+    if (isUser || !message.content) return
+    
+    setIsGeneratingAudio(true)
+    try {
+      const response = await fetch("/api/voice/synthesize", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          text: message.content,
+          voice: selectedVoice
+        })
+      })
+      
+      if (!response.ok) {
+        const error = await response.json()
+        if (error.code === "PREMIUM_REQUIRED") {
+          toast({
+            type: "warning",
+            title: "Premium Feature",
+            description: "Voice messages require a premium subscription"
+          })
+        } else {
+          throw new Error(error.error || "Failed to generate audio")
+        }
+        return
+      }
+      
+      const blob = await response.blob()
+      const url = URL.createObjectURL(blob)
+      setAudioUrl(url)
+      
+      // Clean up old URL if it exists
+      if (audioUrl && audioUrl.startsWith("blob:")) {
+        URL.revokeObjectURL(audioUrl)
+      }
+    } catch (error) {
+      console.error("Failed to generate audio:", error)
+      toast({
+        type: "error",
+        title: "Audio Generation Failed",
+        description: "Unable to create voice message"
+      })
+    } finally {
+      setIsGeneratingAudio(false)
+    }
+  }
   
   return (
     <motion.div
@@ -39,6 +97,34 @@ export function Message({ message, companionName }: MessageProps) {
             <p className="text-xs font-medium text-purple-600 mb-1">{companionName}</p>
           )}
           <p className="text-sm whitespace-pre-wrap">{message.content}</p>
+          
+          {/* Voice Message */}
+          {!isUser && voiceEnabled && (
+            <div className="mt-2">
+              {audioUrl ? (
+                <VoiceMessage audioUrl={audioUrl} className="max-w-full" />
+              ) : (
+                <button
+                  onClick={generateAudio}
+                  disabled={isGeneratingAudio}
+                  className="flex items-center gap-1.5 text-xs text-purple-600 hover:text-purple-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {isGeneratingAudio ? (
+                    <>
+                      <Loader2 className="w-3 h-3 animate-spin" />
+                      Generating...
+                    </>
+                  ) : (
+                    <>
+                      <Volume2 className="w-3 h-3" />
+                      Play voice
+                    </>
+                  )}
+                </button>
+              )}
+            </div>
+          )}
+          
           <p className={`text-xs mt-1 ${isUser ? "text-purple-200" : "text-gray-400"}`}>
             {format(new Date(message.createdAt), "h:mm a")}
           </p>

@@ -62,6 +62,12 @@ model Profile {
   companionAvatar     String?
   companionVoice      String?
   companionPersonality Json? // AI personality config
+  
+  // Voice Settings
+  voiceEnabled     Boolean @default(false)
+  selectedVoice    String  @default("alloy") // alloy, echo, fable, onyx, nova, shimmer
+  autoPlayVoice    Boolean @default(false)
+  voiceSpeed       Float   @default(1.0)
 
   // Metrics
   trustLevel      Float    @default(0)
