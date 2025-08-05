@@ -3,6 +3,7 @@ import { NextResponse } from "next/server"
 import Stripe from "stripe"
 import { prisma } from "@/lib/prisma"
 import { stripe } from "@/lib/stripe"
+import { sendSubscriptionConfirmation } from "@/lib/email/resend"
 
 export async function POST(request: Request) {
   const body = await request.text()
@@ -51,6 +52,19 @@ export async function POST(request: Request) {
             }
           }
         })
+        
+        // Send confirmation email
+        const user = await prisma.user.findUnique({
+          where: { id: session.metadata!.userId }
+        })
+        
+        if (user?.email) {
+          await sendSubscriptionConfirmation(
+            user.email,
+            user.name || "Friend",
+            session.metadata!.plan.charAt(0).toUpperCase() + session.metadata!.plan.slice(1)
+          ).catch(console.error)
+        }
         
         break
       }

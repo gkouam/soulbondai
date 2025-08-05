@@ -2,6 +2,7 @@ import { NextResponse } from "next/server"
 import bcrypt from "bcryptjs"
 import { z } from "zod"
 import { prisma } from "@/lib/prisma"
+import { sendWelcomeEmail } from "@/lib/email/resend"
 
 const registerSchema = z.object({
   email: z.string().email(),
@@ -52,6 +53,15 @@ export async function POST(req: Request) {
           },
         },
       },
+    })
+
+    // Send welcome email (non-blocking)
+    sendWelcomeEmail(
+      user.email!,
+      user.name || "Friend",
+      "warm_empath" // Default archetype until they take the test
+    ).catch(error => {
+      console.error("Failed to send welcome email:", error)
     })
 
     return NextResponse.json({

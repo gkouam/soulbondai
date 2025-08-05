@@ -1,9 +1,9 @@
 import { NextResponse } from "next/server"
 import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
-import { prisma } from "@/lib/prisma"
+import { exportUserData, ExportOptions } from "@/lib/data-export"
 
-export async function GET(req: Request) {
+export async function POST(request: Request) {
   try {
     const session = await getServerSession(authOptions)
     
@@ -11,55 +11,26 @@ export async function GET(req: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
     
-    // Fetch all user data
-    const userData = await prisma.user.findUnique({
-      where: { id: session.user.id },
-      include: {
-        profile: true,
-        accounts: true,
-        sessions: true,
-        conversations: {
-          include: {
-            messages: true
-          }
-        },
-        subscription: true,
-        activities: true,
-        conversions: true,
-        memories: true
-      }
-    })
-    
-    if (!userData) {
-      return NextResponse.json({ error: "User not found" }, { status: 404 })
+    const body = await request.json()
+    const options: ExportOptions = {
+      includeMessages: body.includeMessages ?? true,
+      includeProfile: body.includeProfile ?? true,
+      includePreferences: body.includePreferences ?? true,
+      includeSubscription: body.includeSubscription ?? true,
+      includeAnalytics: body.includeAnalytics ?? false,
+      format: body.format || 'json',
     }
     
-    // Remove sensitive data
-    const { password, passwordResetToken, passwordResetExpires, ...safeUserData } = userData
+    const data = await exportUserData(session.user.id, options)
     
-    // Format data for export
-    const exportData = {
-      exportedAt: new Date().toISOString(),
-      userData: safeUserData,
-      statistics: {
-        totalMessages: userData.conversations.reduce((acc, conv) => acc + conv.messages.length, 0),
-        totalConversations: userData.conversations.length,
-        accountCreated: userData.createdAt,
-        lastActive: userData.profile?.lastActiveAt
-      }
-    }
+    const headers = new Headers()
+    headers.set('Content-Type', options.format === 'csv' ? 'text/csv' : 'application/json')
+    headers.set('Content-Disposition', `attachment; filename="soulbondai-export.${options.format}"`)
     
-    // Return as JSON download
-    return new NextResponse(JSON.stringify(exportData, null, 2), {
-      status: 200,
-      headers: {
-        "Content-Type": "application/json",
-        "Content-Disposition": `attachment; filename="soulbond-ai-data-export-${session.user.id}.json"`
-      }
-    })
+    return new NextResponse(data, { headers })
     
   } catch (error) {
-    console.error("Data export error:", error)
+    console.error("Export error:", error)
     return NextResponse.json(
       { error: "Failed to export data" },
       { status: 500 }

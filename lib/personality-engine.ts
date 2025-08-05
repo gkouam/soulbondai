@@ -1,24 +1,16 @@
 import { OpenAI } from "openai"
-import { Pinecone } from "@pinecone-database/pinecone"
 import { prisma } from "@/lib/prisma"
 import { archetypeProfiles } from "@/lib/archetype-profiles"
 import { PersonalityScores, SentimentAnalysis, ConversationContext, Message } from "@/types"
+import { generateEmbedding, searchSimilarMemories, storeMemoryVector } from "@/lib/vector-store"
 
 export class PersonalityEngine {
   private openai: OpenAI
-  private pinecone: Pinecone | null = null
   
   constructor() {
     this.openai = new OpenAI({
       apiKey: process.env.OPENAI_API_KEY
     })
-    
-    // Initialize Pinecone if configured
-    if (process.env.PINECONE_API_KEY) {
-      this.pinecone = new Pinecone({
-        apiKey: process.env.PINECONE_API_KEY
-      })
-    }
   }
   
   // Generate personality-appropriate response
@@ -271,18 +263,45 @@ export class PersonalityEngine {
   }
   
   private async retrieveMemories(message: string, userId: string): Promise<any[]> {
-    // For now, retrieve from database
-    // In production, use vector similarity search with Pinecone
-    const memories = await prisma.memory.findMany({
+    // First try vector similarity search
+    const vectorResults = await searchSimilarMemories(userId, message, 3)
+    
+    // Then get recent high-significance memories
+    const recentMemories = await prisma.memory.findMany({
       where: {
         userId,
         significance: { gte: 5 }
       },
       orderBy: { createdAt: "desc" },
-      take: 5
+      take: 2
     })
     
-    return memories
+    // Combine and deduplicate
+    const memoryIds = new Set<string>()
+    const combinedMemories = []
+    
+    // Add vector search results first (most relevant)
+    for (const result of vectorResults) {
+      if (result.metadata.memoryId) {
+        const memory = await prisma.memory.findUnique({
+          where: { id: result.metadata.memoryId }
+        })
+        if (memory && !memoryIds.has(memory.id)) {
+          memoryIds.add(memory.id)
+          combinedMemories.push(memory)
+        }
+      }
+    }
+    
+    // Add recent memories
+    for (const memory of recentMemories) {
+      if (!memoryIds.has(memory.id)) {
+        memoryIds.add(memory.id)
+        combinedMemories.push(memory)
+      }
+    }
+    
+    return combinedMemories
   }
   
   private buildSystemPrompt(profile: any, memories: any[]): string {
@@ -452,19 +471,40 @@ Communication style for ${profile.archetype}:`
     sentiment: SentimentAnalysis
     significance: number
   }) {
+    const fullContent = `User: ${data.content}\nResponse: ${data.response}`
+    
+    // Generate embedding
+    const embedding = await generateEmbedding(fullContent)
+    
     const memory = await prisma.memory.create({
       data: {
         userId: data.userId,
         type: data.significance > 8 ? "long" : data.significance > 5 ? "medium" : "short",
         category: data.sentiment.primaryEmotion,
-        content: `User: ${data.content}\nResponse: ${data.response}`,
+        content: fullContent,
         context: { sentiment: data.sentiment },
         significance: data.significance,
-        embedding: [], // Would be generated with OpenAI embeddings
+        embedding,
         keywords: this.extractKeywords(data.content),
         expiresAt: data.significance < 5 ? new Date(Date.now() + 7 * 24 * 60 * 60 * 1000) : null
       }
     })
+    
+    // Store in vector database if embedding was generated
+    if (embedding.length > 0) {
+      await storeMemoryVector(
+        data.userId,
+        memory.id,
+        fullContent,
+        {
+          memoryId: memory.id,
+          type: memory.type,
+          category: memory.category,
+          significance: memory.significance,
+          createdAt: memory.createdAt.toISOString()
+        }
+      )
+    }
     
     return memory
   }

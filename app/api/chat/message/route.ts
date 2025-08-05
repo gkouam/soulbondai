@@ -4,30 +4,52 @@ import { z } from "zod"
 import { authOptions } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
 import { PersonalityEngine } from "@/lib/personality-engine"
+import { cache, rateLimiter } from "@/lib/redis"
+import crypto from "crypto"
 
 const messageSchema = z.object({
   content: z.string().min(1).max(1000)
 })
+
+import { handleApiError, AuthenticationError, RateLimitError, NotFoundError } from "@/lib/error-handler"
 
 export async function POST(req: Request) {
   try {
     const session = await getServerSession(authOptions)
     
     if (!session?.user?.id) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+      throw new AuthenticationError()
     }
     
     const body = await req.json()
     const { content } = messageSchema.parse(body)
     
-    // Check message limits for free tier
-    const profile = await prisma.profile.findUnique({
-      where: { userId: session.user.id },
-      include: { user: { include: { subscription: true } } }
-    })
+    // Rate limiting
+    const rateLimitKey = `msg:${session.user.id}`
+    const allowed = await rateLimiter.check(rateLimitKey, 100, 60) // 100 messages per minute
+    
+    if (!allowed) {
+      throw new RateLimitError("Too many messages. Please slow down.")
+    }
+    
+    // Try to get cached profile first
+    const cacheKey = `profile:${session.user.id}`
+    let profile = await cache.get<any>(cacheKey)
     
     if (!profile) {
-      return NextResponse.json({ error: "Profile not found" }, { status: 404 })
+      profile = await prisma.profile.findUnique({
+        where: { userId: session.user.id },
+        include: { user: { include: { subscription: true } } }
+      })
+      
+      // Cache profile for 5 minutes
+      if (profile) {
+        await cache.set(cacheKey, profile, 300)
+      }
+    }
+    
+    if (!profile) {
+      throw new NotFoundError("Profile not found")
     }
     
     // Reset daily message count if needed
@@ -113,6 +135,9 @@ export async function POST(req: Request) {
       }
     })
     
+    // Invalidate cached profile
+    await cache.delete(cacheKey)
+    
     // Track activity
     await prisma.activity.create({
       data: {
@@ -155,10 +180,6 @@ export async function POST(req: Request) {
     })
     
   } catch (error) {
-    console.error("Message error:", error)
-    return NextResponse.json(
-      { error: "Failed to send message" },
-      { status: 500 }
-    )
+    return handleApiError(error)
   }
 }

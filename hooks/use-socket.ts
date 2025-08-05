@@ -1,34 +1,48 @@
 import { useEffect, useState } from "react"
-import io, { Socket } from "socket.io-client"
-
-let socket: Socket | null = null
+import { io, Socket } from "socket.io-client"
+import { useSession } from "next-auth/react"
 
 export function useSocket() {
-  const [connected, setConnected] = useState(false)
-  
+  const [socket, setSocket] = useState<Socket | null>(null)
+  const [isConnected, setIsConnected] = useState(false)
+  const { data: session } = useSession()
+
   useEffect(() => {
-    // Only initialize socket once
-    if (!socket) {
-      socket = io(process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000", {
-        path: "/api/socketio",
-        transports: ["websocket", "polling"],
-      })
-      
-      socket.on("connect", () => {
-        console.log("Socket connected")
-        setConnected(true)
-      })
-      
-      socket.on("disconnect", () => {
-        console.log("Socket disconnected")
-        setConnected(false)
-      })
-    }
-    
+    if (!session?.user?.id) return
+
+    // Get session token from cookies
+    const sessionToken = document.cookie
+      .split('; ')
+      .find(row => row.startsWith('next-auth.session-token='))
+      ?.split('=')[1]
+
+    const socketInstance = io({
+      auth: {
+        sessionToken
+      },
+      transports: ["websocket", "polling"],
+    })
+
+    socketInstance.on("connect", () => {
+      console.log("Socket connected")
+      setIsConnected(true)
+    })
+
+    socketInstance.on("disconnect", () => {
+      console.log("Socket disconnected")
+      setIsConnected(false)
+    })
+
+    socketInstance.on("connect_error", (error) => {
+      console.error("Socket connection error:", error.message)
+    })
+
+    setSocket(socketInstance)
+
     return () => {
-      // Don't disconnect on unmount to maintain connection
+      socketInstance.disconnect()
     }
-  }, [])
-  
-  return socket
+  }, [session])
+
+  return { socket, isConnected }
 }

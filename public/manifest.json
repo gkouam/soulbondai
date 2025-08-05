@@ -7,6 +7,32 @@
   "background_color": "#030712",
   "theme_color": "#8b5cf6",
   "orientation": "portrait",
+  "scope": "/",
+  "prefer_related_applications": false,
+  "related_applications": [],
+  "screenshots": [
+    {
+      "src": "/screenshots/screenshot-1.png",
+      "type": "image/png",
+      "sizes": "540x960",
+      "purpose": "wide"
+    },
+    {
+      "src": "/screenshots/screenshot-2.png",
+      "type": "image/png",
+      "sizes": "540x960",
+      "purpose": "wide"
+    }
+  ],
+  "features": [
+    "notifications",
+    "background-sync",
+    "payment",
+    "credentials"
+  ],
+  "launch_handler": {
+    "client_mode": "navigate-existing"
+  },
   "icons": [
     {
       "src": "/icons/icon-72x72.png",

@@ -1,0 +1,17 @@
+User-agent: *
+Allow: /
+
+# Disallow authenticated pages
+Disallow: /dashboard/
+Disallow: /api/
+Disallow: /auth/
+Disallow: /admin/
+
+# Allow search engines to access public pages
+Allow: /pricing
+Allow: /about
+Allow: /features
+Allow: /blog
+
+# Sitemap
+Sitemap: https://soulbondai.com/sitemap.xml
