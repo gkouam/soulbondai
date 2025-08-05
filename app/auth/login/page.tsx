@@ -13,7 +13,6 @@ function LoginForm() {
   const [isLoading, setIsLoading] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
   const [error, setError] = useState("")
-  const [debugMessage, setDebugMessage] = useState("")
   
   const callbackUrl = searchParams.get("callbackUrl") || "/dashboard/chat"
   
@@ -48,14 +47,12 @@ function LoginForm() {
   }
   
   const handleGoogleSignIn = async () => {
-    console.log("Google sign-in clicked")
-    setDebugMessage("Google sign-in clicked - initiating OAuth flow...")
     setIsLoading(true)
     try {
       await signIn("google", { callbackUrl })
     } catch (err) {
       console.error("Google sign-in error:", err)
-      setDebugMessage("Google sign-in error: " + err)
+      setError("Google sign-in failed. Please try again.")
       setIsLoading(false)
     }
   }
@@ -83,16 +80,6 @@ function LoginForm() {
               className="bg-red-500 bg-opacity-20 border border-red-400 rounded-lg p-3 mb-6 text-sm"
             >
               {error}
-            </motion.div>
-          )}
-          
-          {debugMessage && (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              className="bg-blue-500 bg-opacity-20 border border-blue-400 rounded-lg p-3 mb-6 text-sm"
-            >
-              Debug: {debugMessage}
             </motion.div>
           )}
           
@@ -191,16 +178,12 @@ function LoginForm() {
           
           <p className="mt-6 text-center text-sm text-purple-200">
             Don't have an account?{" "}
-            <button
-              onClick={() => {
-                console.log("Sign up clicked")
-                setDebugMessage("Navigating to sign up...")
-                router.push("/auth/register")
-              }}
-              className="text-white hover:underline font-semibold cursor-pointer bg-transparent border-none"
+            <Link 
+              href="/auth/register" 
+              className="text-white hover:underline font-semibold"
             >
               Sign up
-            </button>
+            </Link>
           </p>
         </div>
       </motion.div>
