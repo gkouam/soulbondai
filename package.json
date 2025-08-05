@@ -5,6 +5,7 @@
   "scripts": {
     "dev": "tsx server/index.ts",
     "build": "next build",
+    "vercel-build": "./scripts/vercel-build.sh",
     "start": "NODE_ENV=production tsx server/index.ts",
     "lint": "next lint",
     "test": "jest",
