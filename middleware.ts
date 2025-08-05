@@ -5,8 +5,24 @@ import { getToken } from "next-auth/jwt"
 export async function middleware(request: NextRequest) {
   const token = await getToken({ req: request })
   const isAuth = !!token
-  const isAuthPage = request.nextUrl.pathname.startsWith("/signin") ||
-                     request.nextUrl.pathname.startsWith("/signup")
+  
+  // Handle legacy auth URLs
+  if (request.nextUrl.pathname === "/signin") {
+    const redirect = request.nextUrl.searchParams.get("redirect") || request.nextUrl.searchParams.get("callbackUrl")
+    const url = new URL("/auth/login", request.url)
+    if (redirect) {
+      url.searchParams.set("callbackUrl", redirect)
+    }
+    return NextResponse.redirect(url)
+  }
+  
+  if (request.nextUrl.pathname === "/signup") {
+    return NextResponse.redirect(new URL("/auth/register", request.url))
+  }
+  
+  const isAuthPage = request.nextUrl.pathname.startsWith("/auth/login") ||
+                     request.nextUrl.pathname.startsWith("/auth/register") ||
+                     request.nextUrl.pathname.startsWith("/auth/reset-password")
 
   // Redirect authenticated users away from auth pages
   if (isAuthPage && isAuth) {
@@ -17,8 +33,13 @@ export async function middleware(request: NextRequest) {
   if (request.nextUrl.pathname.startsWith("/dashboard") && !isAuth) {
     const from = request.nextUrl.pathname
     return NextResponse.redirect(
-      new URL(`/signin?redirect=${encodeURIComponent(from)}`, request.url)
+      new URL(`/auth/login?callbackUrl=${encodeURIComponent(from)}`, request.url)
     )
+  }
+  
+  // Protect admin routes
+  if (request.nextUrl.pathname.startsWith("/admin") && !isAuth) {
+    return NextResponse.redirect(new URL("/auth/login", request.url))
   }
 
   // Track page views for authenticated users
