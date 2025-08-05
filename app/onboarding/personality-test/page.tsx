@@ -48,7 +48,9 @@ export default function PersonalityTest() {
         
         if (response.ok) {
           const result = await response.json()
-          router.push(`/onboarding/results?archetype=${result.archetype}`)
+          // Store the complete results in sessionStorage for the results page
+          sessionStorage.setItem("personalityResults", JSON.stringify(result))
+          router.push("/onboarding/results")
         } else {
           console.error("Failed to submit test")
         }
