@@ -4,6 +4,7 @@ import { z } from "zod"
 import { prisma } from "@/lib/prisma"
 import { authOptions } from "@/lib/auth"
 import { PersonalityScorer } from "@/lib/personality-scorer"
+import { handleApiError, AppError } from "@/lib/error-handling"
 
 const testSubmissionSchema = z.object({
   answers: z.array(z.object({
@@ -78,10 +79,11 @@ export async function POST(req: Request) {
     })
     
   } catch (error) {
-    console.error("Personality test error:", error)
-    return NextResponse.json(
-      { error: "Failed to process personality test" },
-      { status: 500 }
-    )
+    if (error instanceof z.ZodError) {
+      return handleApiError(
+        new AppError("Invalid test submission data", 400, "VALIDATION_ERROR")
+      )
+    }
+    return handleApiError(error)
   }
 }

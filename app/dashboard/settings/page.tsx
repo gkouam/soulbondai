@@ -26,6 +26,8 @@ import {
 } from "lucide-react"
 import Link from "next/link"
 import { toast } from "@/components/ui/use-toast"
+import { useErrorHandler, useAsyncOperation } from "@/hooks/use-error-handler"
+import { FullPageLoader } from "@/components/ui/loading-states"
 
 type ProfileSettings = {
   nickname: string
@@ -41,9 +43,12 @@ type ProfileSettings = {
 }
 
 export default function SettingsPage() {
-  const { data: session } = useSession()
+  const { data: session, status } = useSession()
   const router = useRouter()
   const [loading, setLoading] = useState(false)
+  const [initialLoading, setInitialLoading] = useState(true)
+  const { handleError } = useErrorHandler()
+  const { execute } = useAsyncOperation()
   const [settings, setSettings] = useState<ProfileSettings>({
     nickname: "",
     preferredTone: "balanced",
@@ -58,12 +63,22 @@ export default function SettingsPage() {
   })
 
   useEffect(() => {
+    if (status === "loading") return
+    if (status === "unauthenticated") {
+      router.push("/auth/login")
+      return
+    }
     fetchSettings()
-  }, [])
+  }, [status, router])
 
   const fetchSettings = async () => {
     try {
       const response = await fetch("/api/user/profile")
+      
+      if (!response.ok) {
+        throw new Error("Failed to load settings")
+      }
+      
       const data = await response.json()
       
       if (data) {
@@ -78,61 +93,77 @@ export default function SettingsPage() {
         }))
       }
     } catch (error) {
-      console.error("Failed to fetch settings:", error)
+      handleError(error, "Loading settings")
+    } finally {
+      setInitialLoading(false)
     }
   }
 
   const handleSaveProfile = async () => {
     setLoading(true)
-    try {
-      const response = await fetch("/api/user/profile", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          nickname: settings.nickname,
-          preferredTone: settings.preferredTone,
-          preferredTopics: settings.preferredTopics,
-          conversationStyle: settings.conversationStyle,
-          creativityLevel: settings.creativityLevel,
-          emotionalDepth: settings.emotionalDepth
+    
+    await execute(
+      async () => {
+        const response = await fetch("/api/user/profile", {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            nickname: settings.nickname,
+            preferredTone: settings.preferredTone,
+            preferredTopics: settings.preferredTopics,
+            conversationStyle: settings.conversationStyle,
+            creativityLevel: settings.creativityLevel,
+            emotionalDepth: settings.emotionalDepth
+          })
         })
-      })
 
-      if (response.ok) {
-        toast({
-          title: "Settings saved",
-          description: "Your preferences have been updated successfully."
-        })
+        if (!response.ok) {
+          const error = await response.json()
+          throw new Error(error.error || "Failed to save settings")
+        }
+        
+        return response.json()
+      },
+      {
+        successMessage: "Your preferences have been updated successfully",
+        errorContext: "Saving settings"
       }
-    } catch (error) {
-      console.error("Failed to save settings:", error)
-      toast({
-        title: "Error",
-        description: "Failed to save settings. Please try again.",
-        variant: "destructive"
-      })
-    } finally {
-      setLoading(false)
-    }
+    )
+    
+    setLoading(false)
   }
 
   const handleManageSubscription = async () => {
     setLoading(true)
-    try {
-      const response = await fetch("/api/stripe/customer-portal", {
-        method: "POST"
-      })
-      
-      const data = await response.json()
-      
-      if (data.url) {
-        window.location.href = data.url
+    
+    await execute(
+      async () => {
+        const response = await fetch("/api/stripe/customer-portal", {
+          method: "POST"
+        })
+        
+        if (!response.ok) {
+          throw new Error("Failed to open billing portal")
+        }
+        
+        const data = await response.json()
+        
+        if (data.url) {
+          window.location.href = data.url
+        } else {
+          throw new Error("No portal URL received")
+        }
+      },
+      {
+        errorContext: "Opening billing portal"
       }
-    } catch (error) {
-      console.error("Failed to open customer portal:", error)
-    } finally {
-      setLoading(false)
-    }
+    )
+    
+    setLoading(false)
+  }
+
+  if (status === "loading" || initialLoading) {
+    return <FullPageLoader message="Loading settings..." />
   }
 
   return (
