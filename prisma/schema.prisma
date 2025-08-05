@@ -106,7 +106,9 @@ model Message {
   content String @db.Text
 
   // Rich content
-  attachments Json? // Photos, voice, etc
+  imageUrl    String? // Photo URL
+  audioUrl    String? // Voice message URL
+  attachments Json? // Other attachments
   formatting  Json? // Bold, italic, etc
 
   // Analysis

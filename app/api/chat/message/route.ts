@@ -8,7 +8,9 @@ import { cache, rateLimiter } from "@/lib/redis"
 import crypto from "crypto"
 
 const messageSchema = z.object({
-  content: z.string().min(1).max(1000)
+  content: z.string().min(1).max(1000),
+  imageUrl: z.string().url().optional(),
+  audioUrl: z.string().url().optional()
 })
 
 import { handleApiError, AuthenticationError, RateLimitError, NotFoundError } from "@/lib/error-handler"
@@ -22,7 +24,7 @@ export async function POST(req: Request) {
     }
     
     const body = await req.json()
-    const { content } = messageSchema.parse(body)
+    const { content, imageUrl, audioUrl } = messageSchema.parse(body)
     
     // Rate limiting
     const rateLimitKey = `msg:${session.user.id}`
@@ -94,7 +96,9 @@ export async function POST(req: Request) {
       data: {
         conversationId: conversation.id,
         role: "user",
-        content
+        content,
+        imageUrl,
+        audioUrl
       }
     })
     

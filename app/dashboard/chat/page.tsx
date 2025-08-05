@@ -3,13 +3,15 @@
 import { useState, useEffect, useRef } from "react"
 import { useSession } from "next-auth/react"
 import { motion, AnimatePresence } from "framer-motion"
-import { Send, Smile, Heart, Sparkles, Volume2, VolumeX } from "lucide-react"
+import { Send, Smile, Heart, Sparkles, Volume2, VolumeX, Image as ImageIcon } from "lucide-react"
 import { useSocket } from "@/hooks/use-socket"
 import { Message } from "@/components/message"
 import { TypingIndicator } from "@/components/typing-indicator"
 import { MessageLimitWarning } from "@/components/message-limit-warning"
 import { redirect } from "next/navigation"
 import { useToast } from "@/components/ui/toast-provider"
+import { PhotoUpload } from "@/components/photo-upload"
+import { AnimatePresence } from "framer-motion"
 
 export default function ChatPage() {
   const { data: session, status } = useSession()
@@ -24,6 +26,7 @@ export default function ChatPage() {
   const [isLoading, setIsLoading] = useState(true)
   const [voiceEnabled, setVoiceEnabled] = useState(false)
   const [selectedVoice, setSelectedVoice] = useState("alloy")
+  const [showPhotoUpload, setShowPhotoUpload] = useState(false)
   const { toast } = useToast()
   
   // Redirect if not authenticated
@@ -222,6 +225,14 @@ export default function ChatPage() {
             )}
           </button>
           
+          <button 
+            onClick={() => setShowPhotoUpload(true)}
+            className="p-2 hover:bg-gray-100 rounded-full transition"
+            title="Send a photo"
+          >
+            <ImageIcon className="w-5 h-5 text-gray-600" />
+          </button>
+          
           <button className="p-2 hover:bg-gray-100 rounded-full transition">
             <Smile className="w-5 h-5 text-gray-600" />
           </button>
@@ -302,6 +313,53 @@ export default function ChatPage() {
           </motion.button>
         </div>
       </div>
+      
+      {/* Photo Upload Modal */}
+      <AnimatePresence>
+        {showPhotoUpload && (
+          <PhotoUpload
+            onUpload={async (url) => {
+              // Send photo message
+              const photoMessage = {
+                id: Date.now().toString(),
+                role: "user" as const,
+                content: "Sent a photo",
+                imageUrl: url,
+                createdAt: new Date()
+              }
+              
+              setMessages(prev => [...prev, photoMessage])
+              setShowPhotoUpload(false)
+              
+              // Send to API
+              try {
+                const res = await fetch("/api/chat/send", {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({ 
+                    content: "User sent a photo",
+                    imageUrl: url
+                  })
+                })
+                
+                if (!res.ok) {
+                  const error = await res.json()
+                  if (error.code === "LIMIT_REACHED") {
+                    toast({
+                      type: "warning",
+                      title: "Message limit reached",
+                      description: "Upgrade to Premium for unlimited messages"
+                    })
+                  }
+                }
+              } catch (error) {
+                console.error("Failed to send photo:", error)
+              }
+            }}
+            onCancel={() => setShowPhotoUpload(false)}
+          />
+        )}
+      </AnimatePresence>
     </div>
   )
 }

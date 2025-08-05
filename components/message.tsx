@@ -3,6 +3,7 @@ import { format } from "date-fns"
 import { Volume2, Loader2 } from "lucide-react"
 import { useState } from "react"
 import { VoiceMessage } from "@/components/voice-message"
+import { PhotoMessage } from "@/components/photo-message"
 import { useToast } from "@/components/ui/toast-provider"
 
 interface MessageProps {
@@ -12,6 +13,7 @@ interface MessageProps {
     content: string
     createdAt: Date | string
     audioUrl?: string
+    imageUrl?: string
   }
   companionName: string
   voiceEnabled?: boolean
@@ -96,7 +98,20 @@ export function Message({ message, companionName, voiceEnabled = false, selected
           {!isUser && (
             <p className="text-xs font-medium text-purple-600 mb-1">{companionName}</p>
           )}
-          <p className="text-sm whitespace-pre-wrap">{message.content}</p>
+          
+          {/* Photo Message */}
+          {message.imageUrl && (
+            <PhotoMessage 
+              url={message.imageUrl} 
+              alt={isUser ? "Your photo" : `Photo from ${companionName}`}
+              className="mb-2 max-w-xs"
+            />
+          )}
+          
+          {/* Text Content */}
+          {message.content && (
+            <p className="text-sm whitespace-pre-wrap">{message.content}</p>
+          )}
           
           {/* Voice Message */}
           {!isUser && voiceEnabled && (
