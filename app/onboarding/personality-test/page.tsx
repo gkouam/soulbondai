@@ -52,10 +52,36 @@ export default function PersonalityTest() {
           sessionStorage.setItem("personalityResults", JSON.stringify(result))
           router.push("/onboarding/results")
         } else {
-          console.error("Failed to submit test")
+          console.error("Failed to submit test:", await response.text())
+          // Still proceed with a default archetype
+          sessionStorage.setItem("personalityResults", JSON.stringify({
+            archetype: "warm_empath",
+            dimensions: {},
+            traitProfile: {
+              strengths: ["Empathetic", "Understanding", "Supportive"],
+              growthAreas: [],
+              communicationStyle: {},
+              emotionalNeeds: [],
+              compatibilityFactors: {}
+            }
+          }))
+          router.push("/onboarding/results")
         }
       } catch (error) {
         console.error("Failed to submit test:", error)
+        // Still proceed with a default archetype
+        sessionStorage.setItem("personalityResults", JSON.stringify({
+          archetype: "warm_empath",
+          dimensions: {},
+          traitProfile: {
+            strengths: ["Empathetic", "Understanding", "Supportive"],
+            growthAreas: [],
+            communicationStyle: {},
+            emotionalNeeds: [],
+            compatibilityFactors: {}
+          }
+        }))
+        router.push("/onboarding/results")
       }
     }
   }

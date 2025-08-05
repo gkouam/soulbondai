@@ -187,7 +187,23 @@ export class PersonalityScorer {
     if (dimensions.intuitive_sensing > 5) archetypeScores.passionate_creative += 2
     if (dimensions.relationship_intensity! > 7) archetypeScores.passionate_creative += 2
     if (dimensions.emotional_depth! > 8) archetypeScores.passionate_creative += 2
-    if (dimensions.perceiving > 3) archetypeScores.passionate_creative += 1
+    if (dimensions.judging_perceiving < -3) archetypeScores.passionate_creative += 1
+    
+    // Secure Connector (alternative balanced archetype)
+    archetypeScores.secure_connector = 0
+    if (attachmentStyle.primary === 'secure') archetypeScores.secure_connector += 3
+    if (Math.abs(dimensions.thinking_feeling) < 3) archetypeScores.secure_connector += 2
+    if (Math.abs(dimensions.introversion_extraversion) < 3) archetypeScores.secure_connector += 2
+    if (dimensions.stable_neurotic > 5) archetypeScores.secure_connector += 2
+    if (dimensions.secure_insecure > 5) archetypeScores.secure_connector += 2
+    
+    // Playful Explorer
+    archetypeScores.playful_explorer = 0
+    if (dimensions.introversion_extraversion > 5) archetypeScores.playful_explorer += 2
+    if (dimensions.judging_perceiving < -5) archetypeScores.playful_explorer += 2
+    if (rawScores.adventurous > 5) archetypeScores.playful_explorer += 2
+    if (rawScores.playful > 5) archetypeScores.playful_explorer += 2
+    if (rawScores.spontaneous > 5) archetypeScores.playful_explorer += 1
     
     // Find highest scoring archetype
     let maxScore = 0

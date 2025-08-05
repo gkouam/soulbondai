@@ -48,6 +48,20 @@ const archetypeDetails = {
     color: "from-amber-500 to-orange-500",
     description: "You have a natural ability to understand and connect with others emotionally.",
     traits: ["Empathetic", "Intuitive", "Supportive", "Compassionate", "Understanding"],
+  },
+  deep_thinker: {
+    name: "The Deep Thinker",
+    icon: Brain,
+    color: "from-indigo-500 to-blue-500",
+    description: "You seek profound understanding and meaningful intellectual connections.",
+    traits: ["Philosophical", "Analytical", "Introspective", "Wise", "Contemplative"],
+  },
+  passionate_creative: {
+    name: "The Passionate Creative",
+    icon: Heart,
+    color: "from-pink-500 to-purple-500",
+    description: "You experience life with intense emotion and creative expression.",
+    traits: ["Creative", "Passionate", "Expressive", "Intense", "Artistic"],
   }
 }
 
@@ -63,7 +77,13 @@ export default function ResultsPage() {
       
       if (storedResults) {
         const parsedResults = JSON.parse(storedResults)
-        setArchetype(parsedResults.archetype || "warm_empath")
+        // Validate the archetype exists
+        const validArchetype = parsedResults.archetype && 
+          archetypeDetails.hasOwnProperty(parsedResults.archetype) 
+          ? parsedResults.archetype 
+          : "warm_empath"
+        
+        setArchetype(validArchetype)
         sessionStorage.removeItem("personalityResults")
       } else {
         // If no results, redirect back to test
