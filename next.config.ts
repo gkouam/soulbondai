@@ -14,7 +14,6 @@ const nextConfig: NextConfig = {
   },
   // PWA configuration
   reactStrictMode: true,
-  swcMinify: true,
   images: {
     domains: ['localhost'],
     remotePatterns: [
