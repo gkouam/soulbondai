@@ -192,15 +192,17 @@ function LoginForm() {
             </motion.button>
           </div>
           
-          <p className="mt-6 text-center text-sm text-purple-200">
-            Don't have an account?{" "}
+          <div className="mt-6 text-center">
+            <p className="text-sm text-purple-200 mb-3">
+              Don't have an account?
+            </p>
             <Link 
               href="/auth/register" 
-              className="text-white hover:underline font-semibold"
+              className="inline-block px-6 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors font-semibold"
             >
-              Sign up
+              Create Account
             </Link>
-          </p>
+          </div>
         </div>
       </motion.div>
     </div>

@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation"
 import { signIn } from "next-auth/react"
 import { motion } from "framer-motion"
 import { Eye, EyeOff, Mail, Lock, User } from "lucide-react"
+import Link from "next/link"
 
 export default function RegisterPage() {
   const router = useRouter()
@@ -176,12 +177,17 @@ export default function RegisterPage() {
             </motion.button>
           </div>
           
-          <p className="mt-6 text-center text-sm text-purple-200">
-            Already have an account?{" "}
-            <a href="/auth/login" className="text-white hover:underline">
-              Sign in
-            </a>
-          </p>
+          <div className="mt-6 text-center">
+            <p className="text-sm text-purple-200 mb-3">
+              Already have an account?
+            </p>
+            <Link 
+              href="/auth/login" 
+              className="inline-block px-6 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors font-semibold"
+            >
+              Sign In
+            </Link>
+          </div>
         </div>
       </motion.div>
     </div>
