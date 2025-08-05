@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, Suspense } from "react"
+import { useState, Suspense, useEffect } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { signIn } from "next-auth/react"
 import { motion } from "framer-motion"
@@ -15,6 +15,19 @@ function LoginForm() {
   const [error, setError] = useState("")
   
   const callbackUrl = searchParams.get("callbackUrl") || "/dashboard/chat"
+  const authError = searchParams.get("error")
+  
+  useEffect(() => {
+    if (authError) {
+      if (authError === "Callback") {
+        setError("Google sign-in failed. Please check that the redirect URI is properly configured.")
+      } else if (authError === "OAuthAccountNotLinked") {
+        setError("This email is already registered. Please sign in with your password.")
+      } else {
+        setError(`Authentication error: ${authError}`)
+      }
+    }
+  }, [authError])
   
   const [formData, setFormData] = useState({
     email: "",
