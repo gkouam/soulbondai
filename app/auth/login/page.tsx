@@ -19,10 +19,13 @@ function LoginForm() {
   
   useEffect(() => {
     if (authError) {
+      console.log("Auth error received:", authError)
       if (authError === "Callback") {
-        setError("Google sign-in failed. Please check that the redirect URI is properly configured.")
+        setError("Google OAuth callback error. Please ensure https://soulbondai.vercel.app/api/auth/callback/google is added to your Google OAuth app.")
       } else if (authError === "OAuthAccountNotLinked") {
         setError("This email is already registered. Please sign in with your password.")
+      } else if (authError === "Configuration") {
+        setError("OAuth configuration error. Please check environment variables.")
       } else {
         setError(`Authentication error: ${authError}`)
       }
