@@ -1,11 +1,11 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, Suspense } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { motion } from "framer-motion"
 import { Heart, Brain, Lock, Star } from "lucide-react"
 
-export default function LandingContent() {
+function LandingPageContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const [headline, setHeadline] = useState("")
@@ -206,5 +206,17 @@ export default function LandingContent() {
         </section>
       </div>
     </div>
+  )
+}
+
+export default function LandingContent() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-gradient-to-br from-gray-950 via-gray-900 to-gray-950 flex items-center justify-center">
+        <div className="animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-violet-500"></div>
+      </div>
+    }>
+      <LandingPageContent />
+    </Suspense>
   )
 }

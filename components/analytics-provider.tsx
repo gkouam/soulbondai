@@ -1,10 +1,10 @@
 "use client"
 
-import { useEffect } from "react"
+import { useEffect, Suspense } from "react"
 import { usePathname, useSearchParams } from "next/navigation"
 import { initGA, pageview } from "@/lib/gtag"
 
-export function AnalyticsProvider({ children }: { children: React.ReactNode }) {
+function AnalyticsTracker({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
   const searchParams = useSearchParams()
 
@@ -22,4 +22,12 @@ export function AnalyticsProvider({ children }: { children: React.ReactNode }) {
   }, [pathname, searchParams])
 
   return <>{children}</>
+}
+
+export function AnalyticsProvider({ children }: { children: React.ReactNode }) {
+  return (
+    <Suspense fallback={<>{children}</>}>
+      <AnalyticsTracker>{children}</AnalyticsTracker>
+    </Suspense>
+  )
 }
