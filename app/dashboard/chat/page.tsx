@@ -8,10 +8,14 @@ import { useSocket } from "@/hooks/use-socket"
 import { Message } from "@/components/message"
 import { TypingIndicator } from "@/components/typing-indicator"
 import { MessageLimitWarning } from "@/components/message-limit-warning"
+import { MilestoneCelebration } from "@/components/milestone-celebration"
+import { UpgradePrompt } from "@/components/upgrade-prompt"
 import { redirect } from "next/navigation"
 import { useToast } from "@/components/ui/toast-provider"
 import { PhotoUpload } from "@/components/photo-upload"
-import { AnimatePresence } from "framer-motion"
+import { RateLimitIndicator } from "@/components/rate-limit-indicator"
+import { useKeyboardNavigation } from "@/hooks/use-keyboard-navigation"
+import { useOffline } from "@/hooks/use-offline"
 
 export default function ChatPage() {
   const { data: session, status } = useSession()
@@ -27,7 +31,11 @@ export default function ChatPage() {
   const [voiceEnabled, setVoiceEnabled] = useState(false)
   const [selectedVoice, setSelectedVoice] = useState("alloy")
   const [showPhotoUpload, setShowPhotoUpload] = useState(false)
+  const [celebratingMilestone, setCelebratingMilestone] = useState<any>(null)
+  const [upgradePrompt, setUpgradePrompt] = useState<any>(null)
+  const [featureAccess, setFeatureAccess] = useState<Record<string, boolean>>({})
   const { toast } = useToast()
+  const { isOnline, addToOfflineQueue, cacheData, getCachedData } = useOffline()
   
   // Redirect if not authenticated
   useEffect(() => {
@@ -37,20 +45,39 @@ export default function ChatPage() {
     }
   }, [session, status])
   
-  // Load conversation history and voice settings
+  // Load conversation history, voice settings, and feature access
   useEffect(() => {
     const loadData = async () => {
       try {
-        // Load conversation
-        const [conversationRes, voiceSettingsRes] = await Promise.all([
+        // Try to load from cache first if offline
+        if (!isOnline) {
+          const cachedMessages = await getCachedData<any[]>('chat-messages')
+          if (cachedMessages) {
+            setMessages(cachedMessages)
+            setIsLoading(false)
+            return
+          }
+        }
+        
+        // Load conversation, voice settings, and feature access
+        const [conversationRes, voiceSettingsRes, featuresRes] = await Promise.all([
           fetch("/api/chat/conversation"),
-          fetch("/api/voice/settings")
+          fetch("/api/voice/settings"),
+          fetch("/api/features/check", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ 
+              features: ["voice_messages", "photo_sharing"] 
+            })
+          })
         ])
         
         if (conversationRes.ok) {
           const data = await conversationRes.json()
           if (data.messages) {
             setMessages(data.messages)
+            // Cache messages for offline use
+            await cacheData('chat-messages', data.messages)
           }
         }
         
@@ -58,6 +85,11 @@ export default function ChatPage() {
           const voiceData = await voiceSettingsRes.json()
           setVoiceEnabled(voiceData.voiceEnabled || false)
           setSelectedVoice(voiceData.selectedVoice || "alloy")
+        }
+        
+        if (featuresRes.ok) {
+          const featuresData = await featuresRes.json()
+          setFeatureAccess(featuresData.access || {})
         }
       } catch (error) {
         console.error("Failed to load data:", error)
@@ -114,6 +146,38 @@ export default function ChatPage() {
     setMessages(prev => [...prev, userMessage])
     setInput("")
     
+    // Handle offline mode
+    if (!isOnline) {
+      // Add to offline queue
+      const offlineId = addToOfflineQueue({
+        type: 'message',
+        data: {
+          conversationId: 'current', // You'll need to track this
+          message: input,
+          characterId: 'default',
+        }
+      })
+      
+      // Show optimistic AI response
+      const offlineResponse = {
+        id: `offline-${Date.now()}`,
+        role: "assistant",
+        content: "I'll respond to your message as soon as we're back online! 💝",
+        createdAt: new Date(),
+        isOffline: true
+      }
+      
+      setMessages(prev => [...prev, offlineResponse])
+      
+      toast({
+        type: "info",
+        title: "Message queued",
+        description: "Your message will be sent when you're back online"
+      })
+      
+      return
+    }
+    
     // Send via API if socket not available
     if (!socket?.connected) {
       try {
@@ -127,6 +191,31 @@ export default function ChatPage() {
           const data = await res.json()
           if (data.response) {
             setMessages(prev => [...prev, data.response])
+          }
+          
+          // Handle trust updates and milestones
+          if (data.trustUpdate) {
+            if (data.trustUpdate.milestonesAchieved.length > 0) {
+              // Celebrate the first milestone
+              const milestone = data.trustUpdate.milestonesAchieved[0]
+              setCelebratingMilestone({
+                name: milestone,
+                description: "You've reached a new level in your relationship!"
+              })
+            }
+            
+            if (data.trustUpdate.stageChanged) {
+              toast({
+                type: "success",
+                title: "Relationship Deepened!",
+                description: `You've reached ${data.trustUpdate.newStage}`
+              })
+            }
+          }
+          
+          // Handle upgrade prompts
+          if (data.upgradePrompt) {
+            setUpgradePrompt(data.upgradePrompt)
           }
         }
       } catch (error) {
@@ -144,6 +233,46 @@ export default function ChatPage() {
       sendMessage()
     }
   }
+  
+  // Keyboard shortcuts for chat
+  useKeyboardNavigation([
+    {
+      key: 'e',
+      ctrl: true,
+      action: () => {
+        inputRef.current?.focus()
+      },
+      description: 'Focus message input'
+    },
+    {
+      key: 'v',
+      ctrl: true,
+      shift: true,
+      action: async () => {
+        if (featureAccess.voice_messages) {
+          const newVoiceEnabled = !voiceEnabled
+          setVoiceEnabled(newVoiceEnabled)
+          await fetch("/api/voice/settings", {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ voiceEnabled: newVoiceEnabled })
+          })
+        }
+      },
+      description: 'Toggle voice messages'
+    },
+    {
+      key: 'p',
+      ctrl: true,
+      shift: true,
+      action: () => {
+        if (featureAccess.photo_sharing) {
+          setShowPhotoUpload(true)
+        }
+      },
+      description: 'Upload photo'
+    }
+  ])
   
   if (status === "loading" || isLoading) {
     return (
@@ -168,33 +297,51 @@ export default function ChatPage() {
   const messageLimit = 50
   
   return (
-    <div className="flex flex-col h-screen bg-gray-50">
+    <div id="main-content" className="flex flex-col h-screen bg-gray-50" role="main">
       {/* Header */}
-      <div className="bg-white shadow-sm px-4 py-3 flex items-center justify-between">
-        <div className="flex items-center space-x-3">
-          <div className="relative">
-            <motion.div 
-              animate={{ rotate: companionMood === "happy" ? [0, 10, -10, 0] : 0 }}
-              transition={{ duration: 2, repeat: Infinity }}
-              className="w-10 h-10 bg-gradient-to-br from-purple-400 to-pink-400 rounded-full flex items-center justify-center"
-            >
-              {companionMood === "happy" ? (
-                <Sparkles className="w-5 h-5 text-white" />
-              ) : (
-                <Heart className="w-5 h-5 text-white" />
-              )}
-            </motion.div>
-            <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-400 rounded-full border-2 border-white" />
+      <div className="bg-white shadow-sm px-3 sm:px-4 py-2 sm:py-3" role="region" aria-label="Chat header">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-2 sm:space-x-3 min-w-0">
+            <div className="relative flex-shrink-0">
+              <motion.div 
+                animate={{ rotate: companionMood === "happy" ? [0, 10, -10, 0] : 0 }}
+                transition={{ duration: 2, repeat: Infinity }}
+                className="w-9 h-9 sm:w-10 sm:h-10 bg-gradient-to-br from-purple-400 to-pink-400 rounded-full flex items-center justify-center"
+              >
+                {companionMood === "happy" ? (
+                  <Sparkles className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
+                ) : (
+                  <Heart className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
+                )}
+              </motion.div>
+              <div className="absolute bottom-0 right-0 w-2.5 h-2.5 sm:w-3 sm:h-3 bg-green-400 rounded-full border-2 border-white" />
+            </div>
+            <div className="min-w-0">
+              <p className="font-semibold text-gray-800 truncate" aria-label="AI companion name">{companionName}</p>
+              <p className="text-xs text-gray-500 truncate" aria-label="Companion status">Always here for you</p>
+            </div>
           </div>
-          <div>
-            <p className="font-semibold text-gray-800">{companionName}</p>
-            <p className="text-xs text-gray-500">Always here for you</p>
-          </div>
-        </div>
-        
-        <div className="flex items-center gap-1">
+          
+          <div className="flex items-center gap-0.5 sm:gap-1">
           <button 
             onClick={async () => {
+              // Check feature access first
+              if (!featureAccess.voice_messages) {
+                // Track premium feature attempt
+                await fetch("/api/features/attempt", {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({ feature: "voice_messages" })
+                })
+                
+                toast({
+                  type: "warning",
+                  title: "Voice messages locked",
+                  description: "Upgrade to Basic plan or higher to use voice messages"
+                })
+                return
+              }
+              
               const newVoiceEnabled = !voiceEnabled
               setVoiceEnabled(newVoiceEnabled)
               
@@ -215,32 +362,66 @@ export default function ChatPage() {
                 console.error("Failed to update voice settings:", error)
               }
             }}
-            className="p-2 hover:bg-gray-100 rounded-full transition"
+            className="p-2.5 sm:p-2 hover:bg-gray-100 rounded-full transition relative min-w-[44px] min-h-[44px] sm:min-w-0 sm:min-h-0 flex items-center justify-center focus:outline-none focus:ring-2 focus:ring-purple-500"
             title={voiceEnabled ? "Disable voice" : "Enable voice"}
+            aria-label={voiceEnabled ? "Disable voice messages" : "Enable voice messages"}
+            aria-pressed={voiceEnabled}
           >
             {voiceEnabled ? (
               <Volume2 className="w-5 h-5 text-purple-600" />
             ) : (
               <VolumeX className="w-5 h-5 text-gray-600" />
             )}
+            {!featureAccess.voice_messages && (
+              <div className="absolute -top-1 -right-1 w-3 h-3 bg-yellow-500 rounded-full" />
+            )}
           </button>
           
           <button 
-            onClick={() => setShowPhotoUpload(true)}
-            className="p-2 hover:bg-gray-100 rounded-full transition"
+            onClick={async () => {
+              // Check feature access first
+              if (!featureAccess.photo_sharing) {
+                // Track premium feature attempt
+                await fetch("/api/features/attempt", {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({ feature: "photo_sharing" })
+                })
+                
+                toast({
+                  type: "warning",
+                  title: "Photo sharing locked",
+                  description: "Upgrade to Premium plan or higher to share photos"
+                })
+                return
+              }
+              
+              setShowPhotoUpload(true)
+            }}
+            className="p-2.5 sm:p-2 hover:bg-gray-100 rounded-full transition relative min-w-[44px] min-h-[44px] sm:min-w-0 sm:min-h-0 flex items-center justify-center focus:outline-none focus:ring-2 focus:ring-purple-500"
             title="Send a photo"
+            aria-label="Send a photo"
           >
             <ImageIcon className="w-5 h-5 text-gray-600" />
+            {!featureAccess.photo_sharing && (
+              <div className="absolute -top-1 -right-1 w-3 h-3 bg-yellow-500 rounded-full" />
+            )}
           </button>
           
-          <button className="p-2 hover:bg-gray-100 rounded-full transition">
+          <button className="p-2.5 sm:p-2 hover:bg-gray-100 rounded-full transition min-w-[44px] min-h-[44px] sm:min-w-0 sm:min-h-0 flex items-center justify-center">
             <Smile className="w-5 h-5 text-gray-600" />
           </button>
+          </div>
+        </div>
+        
+        {/* Rate Limit Indicator */}
+        <div className="mt-2 px-4">
+          <RateLimitIndicator type="chat" />
         </div>
       </div>
       
       {/* Messages */}
-      <div className="flex-grow overflow-y-auto px-4 py-4">
+      <div className="flex-grow overflow-y-auto px-4 py-4" role="log" aria-label="Chat messages" aria-live="polite">
         {messages.length === 0 && (
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -283,9 +464,9 @@ export default function ChatPage() {
       )}
       
       {/* Input */}
-      <div className="bg-white border-t border-gray-200 px-4 py-3">
-        <div className="flex items-end space-x-2">
-          <button className="p-2 hover:bg-gray-100 rounded-full transition">
+      <div className="bg-white border-t border-gray-200 px-3 sm:px-4 py-2 sm:py-3 safe-area-inset-bottom" role="region" aria-label="Message input">
+        <div className="flex items-end space-x-1 sm:space-x-2">
+          <button className="p-2.5 sm:p-2 hover:bg-gray-100 rounded-full transition min-w-[44px] min-h-[44px] sm:min-w-0 sm:min-h-0 flex items-center justify-center focus:outline-none focus:ring-2 focus:ring-purple-500" aria-label="Add emoji">
             <Smile className="w-6 h-6 text-gray-600" />
           </button>
           
@@ -296,9 +477,10 @@ export default function ChatPage() {
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyPress={handleKeyPress}
-              placeholder={`Share what's on your heart with ${companionName}...`}
+              placeholder={`Message ${companionName}...`}
               disabled={isFreeTier && messagesUsedToday >= messageLimit}
-              className="w-full px-4 py-2 bg-gray-100 rounded-full focus:outline-none focus:ring-2 focus:ring-purple-500 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full px-3 sm:px-4 py-2 sm:py-2.5 bg-gray-100 rounded-full text-sm sm:text-base focus:outline-none focus:ring-2 focus:ring-purple-500 disabled:opacity-50 disabled:cursor-not-allowed"
+              aria-label="Type your message"
             />
           </div>
           
@@ -307,12 +489,41 @@ export default function ChatPage() {
             whileTap={{ scale: 0.9 }}
             onClick={sendMessage}
             disabled={!input.trim() || (isFreeTier && messagesUsedToday >= messageLimit)}
-            className="p-2 bg-purple-600 text-white rounded-full hover:bg-purple-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
+            className="p-2.5 sm:p-2 bg-purple-600 text-white rounded-full hover:bg-purple-700 transition disabled:opacity-50 disabled:cursor-not-allowed min-w-[44px] min-h-[44px] sm:min-w-0 sm:min-h-0 flex items-center justify-center focus:outline-none focus:ring-2 focus:ring-purple-300"
+            aria-label="Send message"
           >
-            <Send className="w-6 h-6" />
+            <Send className="w-5 h-5 sm:w-6 sm:h-6" />
           </motion.button>
         </div>
       </div>
+      
+      {/* Milestone Celebration */}
+      {celebratingMilestone && (
+        <MilestoneCelebration
+          milestone={celebratingMilestone}
+          onClose={() => setCelebratingMilestone(null)}
+        />
+      )}
+      
+      {/* Upgrade Prompt */}
+      {upgradePrompt && upgradePrompt.trigger && (
+        <UpgradePrompt
+          trigger={upgradePrompt.trigger}
+          discount={upgradePrompt.discount}
+          onClose={() => setUpgradePrompt(null)}
+          onUpgrade={() => {
+            // Track upgrade click
+            fetch("/api/analytics/track", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                event: "upgrade_prompt_clicked",
+                metadata: { triggerId: upgradePrompt.trigger.id }
+              })
+            })
+          }}
+        />
+      )}
       
       {/* Photo Upload Modal */}
       <AnimatePresence>
@@ -333,7 +544,7 @@ export default function ChatPage() {
               
               // Send to API
               try {
-                const res = await fetch("/api/chat/send", {
+                const res = await fetch("/api/chat/message", {
                   method: "POST",
                   headers: { "Content-Type": "application/json" },
                   body: JSON.stringify({ 
@@ -344,16 +555,26 @@ export default function ChatPage() {
                 
                 if (!res.ok) {
                   const error = await res.json()
-                  if (error.code === "LIMIT_REACHED") {
+                  if (error.code === "RATE_LIMIT_EXCEEDED") {
                     toast({
                       type: "warning",
                       title: "Message limit reached",
                       description: "Upgrade to Premium for unlimited messages"
                     })
                   }
+                } else {
+                  const data = await res.json()
+                  if (data.response) {
+                    setMessages(prev => [...prev, data.response])
+                  }
                 }
               } catch (error) {
                 console.error("Failed to send photo:", error)
+                toast({
+                  type: "error",
+                  title: "Failed to send photo",
+                  description: "Please try again"
+                })
               }
             }}
             onCancel={() => setShowPhotoUpload(false)}

@@ -80,16 +80,18 @@ export function Message({ message, companionName, voiceEnabled = false, selected
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: -10 }}
       className={`flex ${isUser ? "justify-end" : "justify-start"} mb-4`}
+      role="article"
+      aria-label={`${isUser ? 'Your' : companionName + "'s"} message`}
     >
-      <div className={`flex max-w-[70%] ${isUser ? "flex-row-reverse" : "flex-row"} items-end space-x-2`}>
+      <div className={`flex max-w-[85%] sm:max-w-[70%] ${isUser ? "flex-row-reverse" : "flex-row"} items-end ${isUser ? "space-x-reverse space-x-2" : "space-x-2"}`}>
         {!isUser && (
-          <div className="w-8 h-8 bg-gradient-to-br from-purple-400 to-pink-400 rounded-full flex items-center justify-center flex-shrink-0">
+          <div className="w-7 h-7 sm:w-8 sm:h-8 bg-gradient-to-br from-purple-400 to-pink-400 rounded-full flex items-center justify-center flex-shrink-0" aria-hidden="true">
             <span className="text-xs">✨</span>
           </div>
         )}
         
         <div
-          className={`px-4 py-2 rounded-2xl ${
+          className={`px-3 sm:px-4 py-2 rounded-2xl ${
             isUser 
               ? "bg-purple-600 text-white rounded-br-sm" 
               : "bg-white text-gray-800 rounded-bl-sm shadow-sm"
@@ -123,6 +125,7 @@ export function Message({ message, companionName, voiceEnabled = false, selected
                   onClick={generateAudio}
                   disabled={isGeneratingAudio}
                   className="flex items-center gap-1.5 text-xs text-purple-600 hover:text-purple-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  aria-label="Generate voice message"
                 >
                   {isGeneratingAudio ? (
                     <>
@@ -140,13 +143,15 @@ export function Message({ message, companionName, voiceEnabled = false, selected
             </div>
           )}
           
-          <p className={`text-xs mt-1 ${isUser ? "text-purple-200" : "text-gray-400"}`}>
-            {format(new Date(message.createdAt), "h:mm a")}
+          <p className={`text-xs mt-1 ${isUser ? "text-purple-200" : "text-gray-500 dark:text-gray-400"}`} aria-label="Message time">
+            <time dateTime={new Date(message.createdAt).toISOString()}>
+              {format(new Date(message.createdAt), "h:mm a")}
+            </time>
           </p>
         </div>
         
         {isUser && (
-          <div className="w-8 h-8 bg-gray-300 rounded-full flex items-center justify-center flex-shrink-0">
+          <div className="w-7 h-7 sm:w-8 sm:h-8 bg-gray-300 rounded-full flex items-center justify-center flex-shrink-0" aria-hidden="true">
             <span className="text-xs">👤</span>
           </div>
         )}

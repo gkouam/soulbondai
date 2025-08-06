@@ -1,10 +1,70 @@
 import { NextResponse } from "next/server"
 import type { NextRequest } from "next/server"
 import { getToken } from "next-auth/jwt"
+import { rateLimiters, getIdentifier, rateLimitResponse } from "@/lib/rate-limiter"
+import { trackDevice } from "@/lib/device-tracking"
+
+// Paths that should be rate limited
+const rateLimitedPaths = {
+  auth: ["/api/auth/register", "/api/auth/reset-password"],
+  upload: ["/api/upload"],
+  generation: ["/api/voice/synthesize", "/api/generate"],
+  dataExport: ["/api/gdpr/data/export"],
+}
 
 export async function middleware(request: NextRequest) {
+  const pathname = request.nextUrl.pathname
   const token = await getToken({ req: request })
   const isAuth = !!token
+  const userId = token?.sub
+  
+  // Apply rate limiting for API routes
+  if (pathname.startsWith("/api/")) {
+    try {
+      const identifier = getIdentifier(request, userId)
+      
+      // Apply auth rate limiting
+      if (rateLimitedPaths.auth.some(path => pathname.startsWith(path))) {
+        const { success, limit, reset, remaining } = await rateLimiters.auth.limit(identifier)
+        if (!success) {
+          return rateLimitResponse(remaining, reset, limit)
+        }
+      }
+      
+      // Apply upload rate limiting
+      if (rateLimitedPaths.upload.some(path => pathname.startsWith(path))) {
+        const { success, limit, reset, remaining } = await rateLimiters.upload.limit(identifier)
+        if (!success) {
+          return rateLimitResponse(remaining, reset, limit)
+        }
+      }
+      
+      // Apply generation rate limiting
+      if (rateLimitedPaths.generation.some(path => pathname.startsWith(path))) {
+        const { success, limit, reset, remaining } = await rateLimiters.generation.limit(identifier)
+        if (!success) {
+          return rateLimitResponse(remaining, reset, limit)
+        }
+      }
+      
+      // Apply data export rate limiting
+      if (rateLimitedPaths.dataExport.some(path => pathname.startsWith(path))) {
+        const { success, limit, reset, remaining } = await rateLimiters.dataExport.limit(identifier)
+        if (!success) {
+          return rateLimitResponse(remaining, reset, limit)
+        }
+      }
+      
+      // Apply general API rate limiting (last to allow specific limits to take precedence)
+      const { success, limit, reset, remaining } = await rateLimiters.api.limit(identifier)
+      if (!success) {
+        return rateLimitResponse(remaining, reset, limit)
+      }
+    } catch (error) {
+      console.error("Rate limiting error:", error)
+      // Don't block requests if rate limiting fails
+    }
+  }
   
   // Handle legacy auth URLs
   if (request.nextUrl.pathname === "/signin") {
@@ -61,22 +121,44 @@ export async function middleware(request: NextRequest) {
       response.headers.set("x-utm-campaign", utm_campaign || "")
     }
     
+    // Track device for authenticated users (non-blocking)
+    if (!request.nextUrl.pathname.startsWith("/api/")) {
+      trackDevice(request as any).catch(error => {
+        console.error("Device tracking error in middleware:", error)
+      })
+    }
+    
+    // Set device fingerprint cookie if not present
+    if (!request.cookies.get('device_fingerprint')) {
+      const fingerprint = generateFingerprint()
+      response.cookies.set('device_fingerprint', fingerprint, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax',
+        maxAge: 60 * 60 * 24 * 365 // 1 year
+      })
+    }
+    
     return response
   }
 
   return NextResponse.next()
 }
 
+function generateFingerprint(): string {
+  // Simple fingerprint generation - in production, use client-side fingerprinting
+  return `device_${Date.now()}_${Math.random().toString(36).substring(2, 15)}`
+}
+
 export const config = {
   matcher: [
     /*
      * Match all request paths except for the ones starting with:
-     * - api (API routes)
      * - _next/static (static files)
      * - _next/image (image optimization files)
      * - favicon.ico (favicon file)
      * - public folder
      */
-    "/((?!api|_next/static|_next/image|favicon.ico|.*\\..*|_vercel).*)",
+    "/((?!_next/static|_next/image|favicon.ico|.*\\..*|_vercel).*)",
   ],
 }

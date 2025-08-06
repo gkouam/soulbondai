@@ -3,6 +3,7 @@ import bcrypt from "bcryptjs"
 import { z } from "zod"
 import { prisma } from "@/lib/prisma"
 import { sendWelcomeEmail } from "@/lib/email/resend"
+import { AuditLogger, AuditAction } from "@/lib/audit-logger"
 
 const registerSchema = z.object({
   email: z.string().email(),
@@ -14,6 +15,12 @@ export async function POST(req: Request) {
   try {
     const body = await req.json()
     const { email, password, name } = registerSchema.parse(body)
+    
+    // Get IP and user agent for audit logging
+    const ipAddress = req.headers.get('x-forwarded-for') || 
+                     req.headers.get('x-real-ip') || 
+                     'unknown'
+    const userAgent = req.headers.get('user-agent') || 'unknown'
 
     // Check if user already exists
     const existingUser = await prisma.user.findUnique({
@@ -62,6 +69,16 @@ export async function POST(req: Request) {
       "warm_empath" // Default archetype until they take the test
     ).catch(error => {
       console.error("Failed to send welcome email:", error)
+    })
+    
+    // Log successful registration
+    await AuditLogger.log({
+      action: AuditAction.USER_REGISTER,
+      userId: user.id,
+      metadata: { email: user.email },
+      ipAddress,
+      userAgent,
+      success: true
     })
 
     return NextResponse.json({

@@ -1,0 +1,148 @@
+/* High Contrast Color Adjustments for WCAG AA/AAA Compliance */
+
+/* Ensure text meets WCAG AA standards (4.5:1 for normal text, 3:1 for large text) */
+.dark {
+  /* Increase contrast for muted text */
+  --muted-foreground: oklch(0.8 0 0); /* Lighter muted text */
+  
+  /* Ensure primary colors have sufficient contrast */
+  --primary: oklch(0.75 0.15 285); /* Slightly darker purple */
+  --primary-foreground: oklch(0.98 0 0); /* Nearly white */
+  
+  /* Improve secondary colors */
+  --secondary: oklch(0.35 0 0); /* Darker secondary background */
+  --secondary-foreground: oklch(0.95 0 0); /* Bright text */
+  
+  /* Better accent colors */
+  --accent: oklch(0.4 0 0); /* Darker accent background */
+  --accent-foreground: oklch(0.98 0 0); /* Bright text */
+  
+  /* Ensure destructive colors are accessible */
+  --destructive: oklch(0.65 0.25 22); /* Slightly darker red */
+  --destructive-foreground: oklch(0.98 0 0);
+  
+  /* Improve border visibility */
+  --border: oklch(1 0 0 / 20%); /* More visible borders */
+  --input: oklch(1 0 0 / 25%); /* More visible input borders */
+}
+
+/* Focus indicators - WCAG 2.4.7 */
+*:focus-visible {
+  outline: 3px solid oklch(0.75 0.15 285);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* Button contrast improvements */
+.dark button:not(:disabled) {
+  min-height: 44px; /* Touch target size */
+  min-width: 44px;
+}
+
+/* Improve link contrast */
+.dark a {
+  color: oklch(0.8 0.15 285); /* Lighter purple for links */
+  text-decoration-thickness: 2px;
+  text-underline-offset: 3px;
+}
+
+.dark a:hover {
+  color: oklch(0.9 0.15 285);
+  text-decoration: underline;
+}
+
+/* Improve form field contrast */
+.dark input,
+.dark textarea,
+.dark select {
+  border-width: 2px;
+  background-color: oklch(0.2 0 0);
+  color: oklch(0.95 0 0);
+}
+
+.dark input::placeholder,
+.dark textarea::placeholder {
+  color: oklch(0.7 0 0); /* Lighter placeholder text */
+}
+
+/* Error messages with better contrast */
+.dark .text-destructive,
+.dark .text-red-500,
+.dark .text-red-400 {
+  color: oklch(0.8 0.25 22); /* Lighter red for better contrast */
+}
+
+/* Success messages */
+.dark .text-green-500,
+.dark .text-green-400 {
+  color: oklch(0.75 0.2 142); /* Lighter green */
+}
+
+/* Warning messages */
+.dark .text-yellow-500,
+.dark .text-yellow-400 {
+  color: oklch(0.8 0.15 100); /* Lighter yellow */
+}
+
+/* Info messages */
+.dark .text-blue-500,
+.dark .text-blue-400 {
+  color: oklch(0.75 0.2 240); /* Lighter blue */
+}
+
+/* Disabled state contrast */
+.dark [disabled],
+.dark .disabled {
+  opacity: 0.7; /* Higher opacity for better readability */
+  cursor: not-allowed;
+}
+
+/* Badge contrast improvements */
+.dark .badge {
+  font-weight: 600; /* Bolder text for small elements */
+}
+
+/* Card and dialog contrast */
+.dark .bg-gray-900,
+.dark .bg-gray-800 {
+  background-color: oklch(0.25 0 0); /* Slightly lighter backgrounds */
+}
+
+/* Improve toast/notification contrast */
+.dark [role="alert"] {
+  border-width: 2px;
+  font-weight: 500;
+}
+
+/* Gradient text contrast fallback */
+.bg-gradient-to-r {
+  position: relative;
+}
+
+/* Add text shadow for gradient text on dark backgrounds */
+.dark .bg-gradient-to-r.text-transparent {
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+  .dark {
+    --muted-foreground: oklch(0.9 0 0);
+    --border: oklch(1 0 0 / 40%);
+    --input: oklch(1 0 0 / 50%);
+  }
+  
+  .dark *:focus-visible {
+    outline-width: 4px;
+    outline-color: oklch(0.9 0 0);
+  }
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

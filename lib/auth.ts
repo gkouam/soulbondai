@@ -1,9 +1,10 @@
 import { NextAuthOptions } from "next-auth"
 import { PrismaAdapter } from "@auth/prisma-adapter"
-import GoogleProvider from "next-auth/providers/google"
 import CredentialsProvider from "next-auth/providers/credentials"
 import bcrypt from "bcryptjs"
 import { prisma } from "@/lib/prisma"
+import { getEnabledProviders } from "@/lib/oauth-config"
+import { AuditLogger, AuditAction } from "@/lib/audit-logger"
 
 export const authOptions: NextAuthOptions = {
   adapter: PrismaAdapter(prisma) as any,
@@ -18,19 +19,7 @@ export const authOptions: NextAuthOptions = {
   },
   debug: process.env.NODE_ENV === "development",
   providers: [
-    ...(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET
-      ? [GoogleProvider({
-          clientId: process.env.GOOGLE_CLIENT_ID,
-          clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-          authorization: {
-            params: {
-              prompt: "consent",
-              access_type: "offline",
-              response_type: "code"
-            }
-          }
-        })]
-      : []),
+    ...getEnabledProviders(),
     CredentialsProvider({
       name: "credentials",
       credentials: {
@@ -49,6 +38,13 @@ export const authOptions: NextAuthOptions = {
         })
 
         if (!user || !user.passwordHash) {
+          // Log failed login attempt
+          await AuditLogger.log({
+            action: AuditAction.FAILED_LOGIN,
+            metadata: { email: credentials.email, reason: 'user_not_found' },
+            success: false,
+            errorMessage: 'Invalid credentials'
+          })
           throw new Error("Invalid credentials")
         }
 
@@ -58,6 +54,14 @@ export const authOptions: NextAuthOptions = {
         )
 
         if (!isCorrectPassword) {
+          // Log failed login attempt
+          await AuditLogger.log({
+            action: AuditAction.FAILED_LOGIN,
+            userId: user.id,
+            metadata: { email: credentials.email, reason: 'incorrect_password' },
+            success: false,
+            errorMessage: 'Invalid credentials'
+          })
           throw new Error("Invalid credentials")
         }
 
@@ -87,9 +91,17 @@ export const authOptions: NextAuthOptions = {
         const profile = await prisma.profile.findUnique({
           where: { userId: token.id },
         })
+        
+        // Get user's phone verification status
+        const user = await prisma.user.findUnique({
+          where: { id: token.id },
+          select: { phoneNumber: true, phoneVerified: true }
+        })
 
         session.user.subscription = subscription
         session.user.profile = profile
+        session.user.phoneNumber = user?.phoneNumber
+        session.user.phoneVerified = user?.phoneVerified || false
       }
 
       return session
@@ -100,6 +112,69 @@ export const authOptions: NextAuthOptions = {
       }
 
       return token
+    },
+    async signIn({ user, account, profile }) {
+      if (account?.provider) {
+        // Check if user exists
+        const existingUser = await prisma.user.findUnique({
+          where: { email: user.email! }
+        })
+        
+        if (!existingUser) {
+          // For OAuth signups, create user with proper fields
+          const newUser = await prisma.user.create({
+            data: {
+              email: user.email!,
+              name: user.name || profile?.name || "User",
+              image: user.image || profile?.image,
+              emailVerified: new Date(), // OAuth emails are pre-verified
+            }
+          })
+          
+          // Create default subscription
+          await prisma.subscription.create({
+            data: {
+              userId: newUser.id,
+              plan: "free",
+              status: "active",
+              currentPeriodStart: new Date(),
+              currentPeriodEnd: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days
+            }
+          })
+          
+          // Log OAuth registration
+          await AuditLogger.log({
+            action: AuditAction.OAUTH_LOGIN,
+            userId: newUser.id,
+            metadata: { provider: account.provider, email: user.email },
+            success: true
+          })
+        } else {
+          // Log OAuth login
+          await AuditLogger.log({
+            action: AuditAction.OAUTH_LOGIN,
+            userId: existingUser.id,
+            metadata: { provider: account.provider },
+            success: true
+          })
+        }
+      } else {
+        // Log credentials login
+        await AuditLogger.log({
+          action: AuditAction.USER_LOGIN,
+          userId: user.id,
+          metadata: { method: 'credentials' },
+          success: true
+        })
+      }
+      
+      // Update last login
+      await prisma.user.update({
+        where: { id: user.id },
+        data: { lastLogin: new Date() }
+      })
+      
+      return true
     },
   },
 }

@@ -50,7 +50,7 @@ function LandingPageContent() {
   ]
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-950 via-gray-900 to-gray-950">
+    <div id="main-content" className="min-h-screen bg-gradient-to-br from-gray-950 via-gray-900 to-gray-950" role="main">
       {/* Animated background */}
       <div className="absolute inset-0 overflow-hidden">
         <div className="absolute -inset-[10px] opacity-20">
@@ -81,7 +81,7 @@ function LandingPageContent() {
       {/* Content */}
       <div className="relative z-10">
         {/* Hero Section */}
-        <section className="container mx-auto px-4 pt-20 pb-32 text-center">
+        <section className="container mx-auto px-4 sm:px-6 lg:px-8 pt-16 sm:pt-20 pb-20 sm:pb-32 text-center" aria-labelledby="hero-heading">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -94,11 +94,11 @@ function LandingPageContent() {
               </span>
             </div>
 
-            <h1 className="text-5xl md:text-7xl font-bold mb-6 bg-gradient-to-r from-pink-400 to-violet-400 text-transparent bg-clip-text">
+            <h1 id="hero-heading" className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl xl:text-7xl font-bold mb-6 bg-gradient-to-r from-pink-400 to-violet-400 text-transparent bg-clip-text">
               {headline}
             </h1>
 
-            <p className="text-xl text-gray-300 mb-8 max-w-2xl mx-auto">
+            <p className="text-lg sm:text-xl text-gray-200 dark:text-gray-300 mb-8 max-w-2xl mx-auto px-4">
               Experience deep emotional connection with an AI that truly understands you. 
               Take our personality test and meet your perfect companion.
             </p>
@@ -107,20 +107,21 @@ function LandingPageContent() {
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
               onClick={() => router.push("/onboarding/personality-test")}
-              className="px-8 py-4 bg-gradient-to-r from-violet-600 to-pink-600 text-white rounded-full font-semibold text-lg shadow-lg hover:shadow-xl transition-all duration-300"
+              className="px-6 sm:px-8 py-3 sm:py-4 bg-gradient-to-r from-violet-600 to-pink-600 text-white rounded-full font-semibold text-base sm:text-lg shadow-lg hover:shadow-xl transition-all duration-300"
+              aria-label="Start personality test to find your AI companion"
             >
               Start Your Journey
             </motion.button>
 
-            <p className="mt-4 text-sm text-gray-400">
+            <p className="mt-4 text-sm text-gray-300 dark:text-gray-400">
               No credit card required • 3-minute personality test
             </p>
           </motion.div>
         </section>
 
         {/* Features */}
-        <section className="container mx-auto px-4 pb-20">
-          <div className="grid md:grid-cols-3 gap-8">
+        <section className="container mx-auto px-4 sm:px-6 lg:px-8 pb-16 sm:pb-20" aria-label="Key features">
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8">
             {features.map((feature, index) => (
               <motion.div
                 key={index}
@@ -130,10 +131,10 @@ function LandingPageContent() {
                 className="bg-gray-900/50 backdrop-blur-sm rounded-xl p-6 border border-gray-800 hover:border-violet-700 transition-colors"
               >
                 <feature.icon className="w-10 h-10 text-violet-500 mb-4" />
-                <h3 className="text-xl font-semibold text-white mb-2">
+                <h3 className="text-lg sm:text-xl font-semibold text-white mb-2">
                   {feature.title}
                 </h3>
-                <p className="text-gray-400">
+                <p className="text-sm sm:text-base text-gray-400">
                   {feature.description}
                 </p>
               </motion.div>
@@ -142,12 +143,12 @@ function LandingPageContent() {
         </section>
 
         {/* Social Proof */}
-        <section className="container mx-auto px-4 pb-20">
-          <div className="bg-gradient-to-r from-violet-900/20 to-pink-900/20 backdrop-blur-sm rounded-2xl p-8 text-center">
-            <h2 className="text-3xl font-bold text-white mb-8">
+        <section className="container mx-auto px-4 sm:px-6 lg:px-8 pb-16 sm:pb-20" aria-label="User testimonials">
+          <div className="bg-gradient-to-r from-violet-900/20 to-pink-900/20 backdrop-blur-sm rounded-2xl p-6 sm:p-8 text-center">
+            <h2 className="text-2xl sm:text-3xl font-bold text-white mb-6 sm:mb-8">
               What Our Users Say
             </h2>
-            <div className="grid md:grid-cols-3 gap-6">
+            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
               {[
                 {
                   quote: "Finally, someone who understands my anxiety and helps me through it.",
@@ -182,13 +183,13 @@ function LandingPageContent() {
         </section>
 
         {/* CTA */}
-        <section className="container mx-auto px-4 pb-20 text-center">
+        <section className="container mx-auto px-4 pb-20 text-center" aria-labelledby="cta-heading">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.5 }}
           >
-            <h2 className="text-4xl font-bold text-white mb-4">
+            <h2 id="cta-heading" className="text-4xl font-bold text-white mb-4">
               Ready to Find Your Perfect AI Companion?
             </h2>
             <p className="text-xl text-gray-300 mb-8">
@@ -199,6 +200,7 @@ function LandingPageContent() {
               whileTap={{ scale: 0.95 }}
               onClick={() => router.push("/onboarding/personality-test")}
               className="px-8 py-4 bg-gradient-to-r from-violet-600 to-pink-600 text-white rounded-full font-semibold text-lg shadow-lg hover:shadow-xl transition-all duration-300"
+              aria-label="Take the personality test"
             >
               Take the Personality Test
             </motion.button>

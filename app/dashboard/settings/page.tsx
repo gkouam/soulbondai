@@ -22,12 +22,16 @@ import {
   Palette,
   Volume2,
   Save,
-  ArrowLeft
+  ArrowLeft,
+  Phone
 } from "lucide-react"
 import Link from "next/link"
 import { toast } from "@/components/ui/use-toast"
 import { useErrorHandler, useAsyncOperation } from "@/hooks/use-error-handler"
 import { FullPageLoader } from "@/components/ui/loading-states"
+import { PhoneVerification } from "@/components/phone-verification"
+import { DeviceManagement } from "@/components/device-management"
+import { UserActivity } from "@/components/user-activity"
 
 type ProfileSettings = {
   nickname: string
@@ -184,7 +188,7 @@ export default function SettingsPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-950 via-gray-900 to-gray-950">
-      <div className="container mx-auto px-4 py-8 max-w-4xl">
+      <div className="container mx-auto px-4 py-6 sm:py-8 max-w-4xl">
         {/* Header */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -196,36 +200,41 @@ export default function SettingsPage() {
             Back to Dashboard
           </Link>
           
-          <h1 className="text-4xl font-bold mb-2 bg-gradient-to-r from-pink-400 to-violet-400 text-transparent bg-clip-text">
+          <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-2 bg-gradient-to-r from-pink-400 to-violet-400 text-transparent bg-clip-text">
             Settings
           </h1>
-          <p className="text-gray-400">
+          <p className="text-sm sm:text-base text-gray-400">
             Customize your AI companion experience
           </p>
         </motion.div>
 
         {/* Settings Tabs */}
         <Tabs defaultValue="profile" className="space-y-4">
-          <TabsList className="bg-gray-900/50 backdrop-blur-sm border-gray-800">
-            <TabsTrigger value="profile" className="gap-2">
-              <User className="w-4 h-4" />
-              Profile
+          <TabsList className="bg-gray-900/50 backdrop-blur-sm border-gray-800 w-full overflow-x-auto flex-nowrap">
+            <TabsTrigger value="profile" className="gap-1 sm:gap-2 text-xs sm:text-sm whitespace-nowrap">
+              <User className="w-3 h-3 sm:w-4 sm:h-4" />
+              <span className="hidden sm:inline">Profile</span>
             </TabsTrigger>
-            <TabsTrigger value="personality" className="gap-2">
-              <Brain className="w-4 h-4" />
-              Personality
+            <TabsTrigger value="personality" className="gap-1 sm:gap-2 text-xs sm:text-sm whitespace-nowrap">
+              <Brain className="w-3 h-3 sm:w-4 sm:h-4" />
+              <span className="hidden sm:inline">Personality</span>
             </TabsTrigger>
-            <TabsTrigger value="notifications" className="gap-2">
-              <Bell className="w-4 h-4" />
-              Notifications
+            <TabsTrigger value="notifications" className="gap-1 sm:gap-2 text-xs sm:text-sm whitespace-nowrap">
+              <Bell className="w-3 h-3 sm:w-4 sm:h-4" />
+              <span className="hidden sm:inline">Notifications</span>
             </TabsTrigger>
-            <TabsTrigger value="voice" className="gap-2">
-              <Volume2 className="w-4 h-4" />
-              Voice
+            <TabsTrigger value="voice" className="gap-1 sm:gap-2 text-xs sm:text-sm whitespace-nowrap">
+              <Volume2 className="w-3 h-3 sm:w-4 sm:h-4" />
+              <span className="hidden sm:inline">Voice</span>
             </TabsTrigger>
-            <TabsTrigger value="subscription" className="gap-2">
-              <CreditCard className="w-4 h-4" />
-              Subscription
+            <TabsTrigger value="subscription" className="gap-1 sm:gap-2 text-xs sm:text-sm whitespace-nowrap">
+              <CreditCard className="w-3 h-3 sm:w-4 sm:h-4" />
+              <span className="hidden sm:inline">Subscription</span>
+              <span className="sm:hidden">Sub</span>
+            </TabsTrigger>
+            <TabsTrigger value="security" className="gap-1 sm:gap-2 text-xs sm:text-sm whitespace-nowrap">
+              <Shield className="w-3 h-3 sm:w-4 sm:h-4" />
+              <span className="hidden sm:inline">Security</span>
             </TabsTrigger>
           </TabsList>
 
@@ -233,7 +242,7 @@ export default function SettingsPage() {
             <Card className="bg-gray-900/50 backdrop-blur-sm border-gray-800">
               <CardHeader>
                 <CardTitle>Profile Information</CardTitle>
-                <CardDescription>
+                <CardDescription className="text-sm">
                   Manage your basic profile settings
                 </CardDescription>
               </CardHeader>
@@ -275,7 +284,7 @@ export default function SettingsPage() {
             <Card className="bg-gray-900/50 backdrop-blur-sm border-gray-800">
               <CardHeader>
                 <CardTitle>AI Personality Settings</CardTitle>
-                <CardDescription>
+                <CardDescription className="text-sm">
                   Fine-tune how your AI companion interacts with you
                 </CardDescription>
               </CardHeader>
@@ -331,7 +340,7 @@ export default function SettingsPage() {
                   />
                   <div className="flex justify-between text-xs text-gray-500">
                     <span>Predictable</span>
-                    <span>Creative</span>
+                    <span className="text-right">Creative</span>
                   </div>
                 </div>
 
@@ -349,7 +358,7 @@ export default function SettingsPage() {
                   />
                   <div className="flex justify-between text-xs text-gray-500">
                     <span>Surface Level</span>
-                    <span>Deep & Intimate</span>
+                    <span className="text-right">Deep & Intimate</span>
                   </div>
                 </div>
 
@@ -369,7 +378,7 @@ export default function SettingsPage() {
             <Card className="bg-gray-900/50 backdrop-blur-sm border-gray-800">
               <CardHeader>
                 <CardTitle>Notification Preferences</CardTitle>
-                <CardDescription>
+                <CardDescription className="text-sm">
                   Control how you receive updates
                 </CardDescription>
               </CardHeader>
@@ -426,7 +435,7 @@ export default function SettingsPage() {
             <Card className="bg-gray-900/50 backdrop-blur-sm border-gray-800">
               <CardHeader>
                 <CardTitle>Voice Settings</CardTitle>
-                <CardDescription>
+                <CardDescription className="text-sm">
                   Configure voice playback for AI messages (Premium feature)
                 </CardDescription>
               </CardHeader>
@@ -498,8 +507,8 @@ export default function SettingsPage() {
                       />
                       <div className="flex justify-between text-xs text-gray-500">
                         <span>Slower</span>
-                        <span>Normal</span>
-                        <span>Faster</span>
+                        <span className="text-center">Normal</span>
+                        <span className="text-right">Faster</span>
                       </div>
                     </div>
                   </>
@@ -521,7 +530,7 @@ export default function SettingsPage() {
             <Card className="bg-gray-900/50 backdrop-blur-sm border-gray-800">
               <CardHeader>
                 <CardTitle>Subscription Management</CardTitle>
-                <CardDescription>
+                <CardDescription className="text-sm">
                   Manage your subscription and billing
                 </CardDescription>
               </CardHeader>
@@ -537,7 +546,7 @@ export default function SettingsPage() {
                   </div>
                 </div>
 
-                <div className="flex gap-2">
+                <div className="flex flex-col sm:flex-row gap-2">
                   <Button 
                     onClick={handleManageSubscription}
                     disabled={loading}
@@ -554,6 +563,36 @@ export default function SettingsPage() {
                     </Button>
                   </Link>
                 </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+          
+          <TabsContent value="security" className="space-y-4">
+            <PhoneVerification 
+              currentPhone={session?.user?.phoneNumber}
+              isVerified={session?.user?.phoneVerified || false}
+              onUpdate={fetchSettings}
+            />
+            
+            <DeviceManagement />
+            
+            <UserActivity />
+            
+            <Card className="bg-gray-900/50 backdrop-blur-sm border-gray-800">
+              <CardHeader>
+                <CardTitle>Two-Factor Authentication</CardTitle>
+                <CardDescription className="text-sm">
+                  Add an extra layer of security to your account
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <p className="text-sm text-gray-500 mb-4">
+                  Two-factor authentication will be available soon. Phone verification is the first step.
+                </p>
+                <Button disabled variant="outline">
+                  <Shield className="w-4 h-4 mr-2" />
+                  Coming Soon
+                </Button>
               </CardContent>
             </Card>
           </TabsContent>

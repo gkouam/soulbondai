@@ -4,7 +4,9 @@ import { z } from "zod"
 import { authOptions } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
 import { PersonalityEngine } from "@/lib/personality-engine"
-import { cache, rateLimiter } from "@/lib/redis"
+import { cache } from "@/lib/redis"
+import { upgradeTriggerManager } from "@/lib/upgrade-triggers"
+import { withChatRateLimit } from "@/lib/rate-limiter"
 import crypto from "crypto"
 
 const messageSchema = z.object({
@@ -26,12 +28,16 @@ export async function POST(req: Request) {
     const body = await req.json()
     const { content, imageUrl, audioUrl } = messageSchema.parse(body)
     
-    // Rate limiting
-    const rateLimitKey = `msg:${session.user.id}`
-    const allowed = await rateLimiter.check(rateLimitKey, 100, 60) // 100 messages per minute
+    // Get user's subscription plan for rate limiting
+    const subscription = await prisma.subscription.findUnique({
+      where: { userId: session.user.id },
+      select: { plan: true }
+    })
     
-    if (!allowed) {
-      throw new RateLimitError("Too many messages. Please slow down.")
+    // Apply plan-based rate limiting
+    const rateLimitResult = await withChatRateLimit(req, session.user.id, subscription?.plan || "free")
+    if (rateLimitResult) {
+      return rateLimitResult
     }
     
     // Try to get cached profile first
@@ -71,8 +77,14 @@ export async function POST(req: Request) {
     
     // Check free tier limits
     if (profile.user.subscription?.plan === "free" && profile.messagesUsedToday >= 50) {
+      // Check for upgrade triggers when hitting limit
+      const upgradePrompt = await upgradeTriggerManager.getUpgradePrompt(session.user.id)
+      
       return NextResponse.json(
-        { error: "Daily message limit reached. Upgrade to continue chatting!" },
+        { 
+          error: "Daily message limit reached",
+          upgradePrompt
+        },
         { status: 429 }
       )
     }
@@ -128,14 +140,13 @@ export async function POST(req: Request) {
       }
     })
     
-    // Update user metrics
+    // Update user metrics (trust is now handled by PersonalityEngine)
     await prisma.profile.update({
       where: { id: profile.id },
       data: {
         messageCount: { increment: 1 },
         messagesUsedToday: { increment: 1 },
-        lastActiveAt: new Date(),
-        trustLevel: Math.min(100, profile.trustLevel + 0.5)
+        lastActiveAt: new Date()
       }
     })
     
@@ -170,6 +181,9 @@ export async function POST(req: Request) {
       })
     }
     
+    // Check for upgrade triggers
+    const upgradePrompt = await upgradeTriggerManager.getUpgradePrompt(session.user.id)
+    
     return NextResponse.json({
       response: {
         id: aiMessage.id,
@@ -180,7 +194,9 @@ export async function POST(req: Request) {
       messagesRemaining: profile.user.subscription?.plan === "free" 
         ? 50 - profile.messagesUsedToday - 1 
         : null,
-      shouldShowUpgrade: response.shouldTriggerConversion
+      shouldShowUpgrade: response.shouldTriggerConversion,
+      trustUpdate: response.trustUpdate,
+      upgradePrompt: upgradePrompt?.show ? upgradePrompt : null
     })
     
   } catch (error) {

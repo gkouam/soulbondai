@@ -4,6 +4,7 @@ import { authOptions } from "@/lib/auth"
 import { handleApiError, AppError } from "@/lib/error-handling"
 import { getOpenAIClient } from "@/lib/vector-store"
 import { prisma } from "@/lib/prisma"
+import { featureGate } from "@/lib/feature-gates"
 
 export async function POST(req: NextRequest) {
   try {
@@ -12,17 +13,10 @@ export async function POST(req: NextRequest) {
       throw new AppError("Unauthorized", 401)
     }
 
-    // Check if user has premium subscription
-    const subscription = await prisma.subscription.findUnique({
-      where: { userId: session.user.id },
-      select: { 
-        status: true,
-        plan: true
-      }
-    })
-
-    if (!subscription || subscription.status !== "active" || subscription.plan === "basic") {
-      throw new AppError("Voice messages require a premium subscription", 403, "PREMIUM_REQUIRED")
+    // Check feature access
+    const access = await featureGate.checkAndLog(session.user.id, "voice_messages")
+    if (!access.allowed) {
+      throw new AppError(access.message || "Voice messages not available", 403, "FEATURE_LOCKED")
     }
 
     const { text, voice = "alloy" } = await req.json()

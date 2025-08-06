@@ -6,8 +6,8 @@ generator client {
 }
 
 datasource db {
-  provider  = "postgresql"
-  url       = env("DATABASE_URL")
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
   directUrl = env("DIRECT_URL")
 }
 
@@ -18,12 +18,22 @@ model User {
   passwordHash  String?
   name          String?
   image         String?
+  phoneNumber   String?
+  phoneVerified Boolean   @default(false)
+  role          UserRole  @default(USER)
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
   // Password reset
   passwordResetToken    String?
   passwordResetExpires  DateTime?
+  
+  // GDPR Compliance
+  consentGiven         Boolean   @default(false)
+  consentTimestamp     DateTime?
+  lastLogin            DateTime?
+  dataExportRequested  DateTime?
+  deletionRequested    DateTime?
 
   // Relations
   profile               Profile?
@@ -38,6 +48,9 @@ model User {
   // Auth
   accounts Account[]
   sessions Session[]
+  phoneVerifications PhoneVerification[]
+  devices Device[]
+  auditLogs AuditLog[]
 }
 
 model Profile {
@@ -60,180 +73,170 @@ model Profile {
   // Companion
   companionName       String  @default("Luna")
   companionAvatar     String?
-  companionVoice      String?
-  companionPersonality Json? // AI personality config
-  
-  // Voice Settings
-  voiceEnabled     Boolean @default(false)
-  selectedVoice    String  @default("alloy") // alloy, echo, fable, onyx, nova, shimmer
-  autoPlayVoice    Boolean @default(false)
-  voiceSpeed       Float   @default(1.0)
+  companionBackstory  String?
+  companionVoice      String  @default("alloy")
 
-  // Metrics
-  trustLevel      Float    @default(0)
-  messageCount    Int      @default(0)
-  lastActiveAt    DateTime?
-  messagesUsedToday Int    @default(0)
-  lastMessageReset  DateTime @default(now())
+  // Preferences
+  preferredTone       String   @default("balanced")
+  preferredTopics     String[]
+  conversationStyle   String   @default("casual")
+  creativityLevel     Int      @default(50)
+  emotionalDepth      Int      @default(50)
+  voiceEnabled        Boolean  @default(false)
+  autoPlayVoice       Boolean  @default(false)
+  voiceSpeed          Float    @default(1.0)
+
+  // Relationship
+  relationshipStage   String   @default("new_friend")
+  trustLevel          Int      @default(0)
+  interactionCount    Int      @default(0)
+  lastInteraction     DateTime?
+  milestones          Json?    // Achieved milestones
+  significantMemories Json[]   // Important conversation moments
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
 
+// Subscription & Billing
+model Subscription {
+  id                   String   @id @default(cuid())
+  userId               String   @unique
+  user                 User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  stripeCustomerId     String?  @unique
+  stripeSubscriptionId String?  @unique
+  stripePriceId        String?
+  
+  plan                 String   @default("free") // free, basic, premium, ultimate
+  status               String   @default("active") // active, cancelled, past_due, unpaid
+  
+  currentPeriodStart   DateTime?
+  currentPeriodEnd     DateTime?
+  cancelledAt          DateTime?
+  
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+}
+
+// Conversations
 model Conversation {
-  id     String @id @default(cuid())
-  userId String
-  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  messages      Message[]
-  summary       String? // AI-generated summary
-  emotionalTone String? // Overall emotional tone
-  topics        String[] // Detected topics
-
-  startedAt DateTime  @default(now())
-  endedAt   DateTime?
+  id        String    @id @default(cuid())
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  title     String?
+  messages  Message[]
+  archived  Boolean   @default(false)
+  
+  createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
-
-  @@index([userId, startedAt])
+  
+  @@index([userId])
 }
 
 model Message {
-  id             String       @id @default(cuid())
+  id             String        @id @default(cuid())
   conversationId String
-  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
-
-  role    String // 'user' or 'assistant'
-  content String @db.Text
-
-  // Rich content
-  imageUrl    String? // Photo URL
-  audioUrl    String? // Voice message URL
-  attachments Json? // Other attachments
-  formatting  Json? // Bold, italic, etc
-
-  // Analysis
-  sentiment Json? // Emotion analysis
-  keywords  String[] // Important words
-
-  // Metadata
-  tokens       Int?
-  responseTime Int? // ms to generate
-
-  createdAt DateTime  @default(now())
-  editedAt  DateTime?
-  deletedAt DateTime?
-
-  @@index([conversationId, createdAt])
+  conversation   Conversation  @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  
+  role           String        // user, assistant, system
+  content        String
+  metadata       Json?         // Store emotions, context, etc.
+  audioUrl       String?       // For voice messages
+  imageUrl       String?       // For photo sharing
+  
+  createdAt      DateTime      @default(now())
+  
+  @@index([conversationId])
 }
 
+// Memory System
 model Memory {
-  id     String @id @default(cuid())
-  userId String
-  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  type     String // 'short', 'medium', 'long', 'episodic'
-  category String // 'fact', 'preference', 'event', etc
-
-  content      String @db.Text
-  context      Json // Conversation context
-  significance Float // 0-10 importance score
-
-  // Retrieval
-  embedding Float[] // Vector for similarity search
-  keywords  String[]
-
-  createdAt  DateTime  @default(now())
-  recalledAt DateTime?
-  expiresAt  DateTime?
-
-  @@index([userId, type, significance])
+  id           String    @id @default(cuid())
+  userId       String
+  user         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  type         String    // fact, preference, emotion, experience
+  content      String
+  context      String?
+  importance   Float     @default(0.5)
+  embedding    Float[]   // Vector embedding for similarity search
+  
+  createdAt    DateTime  @default(now())
+  lastAccessed DateTime  @default(now())
+  accessCount  Int       @default(0)
+  
+  @@index([userId])
+  @@index([type])
+  @@index([importance])
 }
 
-model PersonalityTestResult {
-  id     String @id @default(cuid())
-  userId String @unique
-  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  // Test data
-  answers     Json // All question answers
-  completedAt DateTime
-  timeSpent   Int // Seconds to complete
-
-  // Scores
-  dimensions         Json // All dimension scores
-  archetype          String // Primary archetype
-  secondaryArchetype String? // Secondary traits
-
-  // Analysis
-  strengths            String[]
-  growthAreas          String[]
-  compatibilityFactors Json
-
-  createdAt DateTime @default(now())
-}
-
-model Subscription {
-  id     String @id @default(cuid())
-  userId String @unique
-  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  stripeCustomerId     String  @unique
-  stripeSubscriptionId String? @unique
-
-  plan   String // "free", "basic", "premium", "ultimate"
-  status String // "active", "canceled", "past_due"
-
-  currentPeriodEnd DateTime
-  cancelAtPeriodEnd Boolean @default(false)
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-}
-
-model Payment {
-  id     String @id @default(cuid())
-  userId String
-  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  stripePaymentIntentId String @unique
-  amount                Int // in cents
-  currency              String
-  status                String
-
-  createdAt DateTime @default(now())
-}
-
+// Analytics & Tracking
 model Activity {
-  id     String @id @default(cuid())
-  userId String
-  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  type     String // 'login', 'message_sent', 'profile_update', etc
-  metadata Json?
-
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  type      String   // login, message, voice_play, photo_share, etc.
+  metadata  Json?
+  
   createdAt DateTime @default(now())
-
-  @@index([userId, type, createdAt])
+  
+  @@index([userId])
+  @@index([type])
+  @@index([createdAt])
 }
 
 model ConversionEvent {
-  id     String @id @default(cuid())
-  userId String
-  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  eventType String // 'test_start', 'test_complete', 'first_message', etc
-  source    String? // UTM source
-  archetype String? // User's personality type
-
-  metadata Json // Event-specific data
-
+  id        String   @id @default(cuid())
+  userId    String?
+  user      User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  
+  event     String   // signup, subscription, upgrade, etc.
+  source    String?  // utm_source
+  medium    String?  // utm_medium
+  campaign  String?  // utm_campaign
+  metadata  Json?
+  
   createdAt DateTime @default(now())
-
-  @@index([userId, eventType])
-  @@index([archetype, eventType])
+  
+  @@index([event])
+  @@index([createdAt])
 }
 
-// NextAuth models
+// Payment Records
+model Payment {
+  id                 String   @id @default(cuid())
+  userId             String
+  user               User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  stripePaymentId    String   @unique
+  amount             Int      // in cents
+  currency           String   @default("usd")
+  status             String   // succeeded, pending, failed
+  
+  createdAt          DateTime @default(now())
+  
+  @@index([userId])
+  @@index([status])
+}
+
+// Personality Test Results
+model PersonalityTestResult {
+  id             String   @id @default(cuid())
+  userId         String   @unique
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  answers        Json     // All test answers
+  scores         Json     // Calculated scores
+  archetype      String   // Primary archetype
+  
+  createdAt      DateTime @default(now())
+  completedAt    DateTime @default(now())
+}
+
+// NextAuth.js Models
 model Account {
   id                String  @id @default(cuid())
   userId            String
@@ -267,4 +270,89 @@ model VerificationToken {
   expires    DateTime
 
   @@unique([identifier, token])
+}
+
+// GDPR Consent Records
+model ConsentRecord {
+  id           String   @id @default(cuid())
+  userId       String
+  consentType  String
+  granted      Boolean
+  timestamp    DateTime @default(now())
+  ipAddress    String?
+  userAgent    String?
+  version      String
+  
+  @@index([userId, consentType])
+  @@index([timestamp])
+}
+
+// Phone Verification
+model PhoneVerification {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  phoneNumber String
+  code        String
+  verified    Boolean  @default(false)
+  expiresAt   DateTime
+  
+  createdAt   DateTime @default(now())
+  
+  @@index([userId])
+  @@index([phoneNumber])
+  @@index([code])
+}
+
+model Device {
+  id           String   @id @default(cuid())
+  userId       String
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  deviceId     String   // Unique device identifier (fingerprint)
+  name         String   // User-friendly name
+  type         String   // desktop, mobile, tablet
+  browser      String   // Chrome, Safari, Firefox, etc.
+  os           String   // Windows, macOS, iOS, Android, etc.
+  
+  lastActiveAt DateTime @default(now())
+  lastIp       String?
+  location     String?  // City, Country
+  
+  trusted      Boolean  @default(false)
+  createdAt    DateTime @default(now())
+  
+  @@unique([userId, deviceId])
+  @@index([userId])
+  @@index([lastActiveAt])
+}
+
+model AuditLog {
+  id           String   @id @default(cuid())
+  userId       String?
+  user         User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  
+  action       String   // Enum value from AuditAction
+  resourceType String?  // Type of resource (e.g., "character", "subscription")
+  resourceId   String?  // ID of the resource
+  
+  metadata     Json     @default("{}")  // Additional context
+  ipAddress    String?
+  userAgent    String?
+  
+  success      Boolean  @default(true)
+  errorMessage String?
+  
+  createdAt    DateTime @default(now())
+  
+  @@index([userId])
+  @@index([action])
+  @@index([createdAt])
+  @@index([resourceType, resourceId])
+}
+
+enum UserRole {
+  USER
+  ADMIN
 }

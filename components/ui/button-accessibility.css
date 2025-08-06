@@ -1,0 +1,70 @@
+/* Button Accessibility Improvements */
+
+/* Ensure all buttons meet minimum size requirements */
+button {
+  min-height: 44px;
+  min-width: 44px;
+  position: relative;
+}
+
+/* Improve focus indicators for all button variants */
+button:focus-visible {
+  outline: 3px solid currentColor;
+  outline-offset: 2px;
+  box-shadow: 0 0 0 2px var(--background), 0 0 0 4px currentColor;
+}
+
+/* High contrast mode adjustments */
+@media (prefers-contrast: high) {
+  button {
+    border: 2px solid currentColor !important;
+  }
+  
+  button:hover:not(:disabled) {
+    filter: brightness(1.2);
+  }
+}
+
+/* Ensure gradient buttons remain accessible */
+button.bg-gradient-to-r {
+  position: relative;
+  overflow: hidden;
+}
+
+/* Add text shadow for better readability on gradients */
+button.bg-gradient-to-r > * {
+  position: relative;
+  z-index: 1;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+}
+
+/* Disabled button improvements */
+button:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+  filter: none;
+}
+
+/* Loading state accessibility */
+button[aria-busy="true"] {
+  cursor: wait;
+}
+
+/* Icon-only button improvements */
+button:has(svg:only-child) {
+  padding: 0.75rem;
+}
+
+/* Ensure icon buttons have proper labels */
+button:has(svg:only-child):not([aria-label]):not([aria-labelledby])::after {
+  content: "Missing accessible label";
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}

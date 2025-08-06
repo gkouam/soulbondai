@@ -2,6 +2,8 @@ import { NextResponse } from "next/server"
 import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
+import { AuditLogger, AuditAction } from "@/lib/audit-logger"
+import { userCache } from "@/lib/cache/redis-cache"
 
 export async function GET(req: Request) {
   try {
@@ -9,6 +11,14 @@ export async function GET(req: Request) {
     
     if (!session?.user?.id) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    }
+    
+    // Try to get from cache first
+    const cacheKey = `profile:${session.user.id}`
+    const cached = await userCache.get(cacheKey)
+    
+    if (cached) {
+      return NextResponse.json(cached)
     }
     
     const profile = await prisma.profile.findUnique({
@@ -26,7 +36,7 @@ export async function GET(req: Request) {
       return NextResponse.json({ error: "Profile not found" }, { status: 404 })
     }
     
-    return NextResponse.json({
+    const profileData = {
       id: profile.id,
       archetype: profile.archetype,
       nickname: profile.nickname,
@@ -41,7 +51,12 @@ export async function GET(req: Request) {
         plan: profile.user.subscription?.plan || "free",
         status: profile.user.subscription?.status || "active"
       }
-    })
+    }
+    
+    // Cache the profile data
+    await userCache.set(cacheKey, profileData, 300) // Cache for 5 minutes
+    
+    return NextResponse.json(profileData)
     
   } catch (error) {
     console.error("Profile fetch error:", error)
@@ -71,6 +86,22 @@ export async function PATCH(req: Request) {
         ...(preferredTopics && { preferredTopics }),
         ...(conversationStyle && { conversationStyle })
       }
+    })
+    
+    // Invalidate cache
+    const cacheKey = `profile:${session.user.id}`
+    await userCache.delete(cacheKey)
+    
+    // Log profile update
+    await AuditLogger.log({
+      action: AuditAction.PROFILE_UPDATE,
+      userId: session.user.id,
+      metadata: { 
+        fieldsUpdated: Object.keys(body).filter(key => body[key] !== undefined)
+      },
+      ipAddress: req.headers.get('x-forwarded-for') || req.headers.get('x-real-ip') || 'unknown',
+      userAgent: req.headers.get('user-agent') || 'unknown',
+      success: true
     })
     
     return NextResponse.json({

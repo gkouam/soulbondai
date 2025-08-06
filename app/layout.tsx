@@ -3,6 +3,9 @@ import { Inter } from "next/font/google";
 import "./globals.css";
 import { Providers } from "@/components/providers";
 import { generateMetadata } from "@/lib/metadata";
+import { KeyboardShortcutsHelp } from "@/components/keyboard-shortcuts-help";
+import { SkipNavigation } from "@/components/skip-navigation";
+import { OfflineIndicator } from "@/components/offline-indicator";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -32,7 +35,12 @@ export default function RootLayout({
         <script src="/sw-register.js" defer />
       </head>
       <body className={inter.className}>
-        <Providers>{children}</Providers>
+        <SkipNavigation />
+        <Providers>
+          <OfflineIndicator />
+          {children}
+          <KeyboardShortcutsHelp />
+        </Providers>
       </body>
     </html>
   );

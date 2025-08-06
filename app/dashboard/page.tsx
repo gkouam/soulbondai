@@ -106,18 +106,20 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-950 via-gray-900 to-gray-950">
-      <div className="container mx-auto px-4 py-8">
+    <div id="main-content" className="min-h-screen bg-gradient-to-br from-gray-950 via-gray-900 to-gray-950" role="main">
+      <div className="container mx-auto px-4 py-6 sm:py-8">
         {/* Header */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           className="mb-8"
+          role="region"
+          aria-label="Dashboard header"
         >
-          <h1 className="text-4xl font-bold mb-2 bg-gradient-to-r from-pink-400 to-violet-400 text-transparent bg-clip-text">
+          <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-2 bg-gradient-to-r from-pink-400 to-violet-400 text-transparent bg-clip-text">
             Welcome back, {dashboardData?.profile.nickname || session?.user?.name || "Soul"}
           </h1>
-          <p className="text-gray-400">
+          <p className="text-sm sm:text-base text-gray-400">
             {dashboardData?.profile.archetype && 
               archetypeDescriptions[dashboardData.profile.archetype as keyof typeof archetypeDescriptions]
             }
@@ -125,7 +127,7 @@ export default function DashboardPage() {
         </motion.div>
 
         {/* Quick Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 mb-6 sm:mb-8" role="region" aria-label="Quick statistics">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -133,13 +135,13 @@ export default function DashboardPage() {
           >
             <Card className="bg-gray-900/50 backdrop-blur-sm border-gray-800">
               <CardHeader className="flex flex-row items-center justify-between pb-2">
-                <CardTitle className="text-sm font-medium text-gray-400">
+                <CardTitle className="text-xs sm:text-sm font-medium text-gray-400">
                   Total Messages
                 </CardTitle>
                 <MessageCircle className="w-4 h-4 text-violet-500" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold text-white">
+                <div className="text-xl sm:text-2xl font-bold text-white">
                   {dashboardData?.stats.totalMessages || 0}
                 </div>
                 <p className="text-xs text-gray-500 mt-1">
@@ -156,13 +158,13 @@ export default function DashboardPage() {
           >
             <Card className="bg-gray-900/50 backdrop-blur-sm border-gray-800">
               <CardHeader className="flex flex-row items-center justify-between pb-2">
-                <CardTitle className="text-sm font-medium text-gray-400">
+                <CardTitle className="text-xs sm:text-sm font-medium text-gray-400">
                   Trust Level
                 </CardTitle>
                 <Heart className="w-4 h-4 text-pink-500" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold text-white">
+                <div className="text-xl sm:text-2xl font-bold text-white">
                   {dashboardData?.profile.trustLevel || 0}%
                 </div>
                 <Progress 
@@ -180,14 +182,15 @@ export default function DashboardPage() {
           >
             <Card className="bg-gray-900/50 backdrop-blur-sm border-gray-800">
               <CardHeader className="flex flex-row items-center justify-between pb-2">
-                <CardTitle className="text-sm font-medium text-gray-400">
+                <CardTitle className="text-xs sm:text-sm font-medium text-gray-400">
                   Current Streak
                 </CardTitle>
                 <TrendingUp className="w-4 h-4 text-green-500" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold text-white">
-                  {dashboardData?.stats.currentStreak || 0} days
+                <div className="text-lg sm:text-2xl font-bold text-white">
+                  <span className="sm:hidden">{dashboardData?.stats.currentStreak || 0}d</span>
+                  <span className="hidden sm:inline">{dashboardData?.stats.currentStreak || 0} days</span>
                 </div>
                 <p className="text-xs text-gray-500 mt-1">
                   Best: {dashboardData?.stats.longestStreak || 0} days
@@ -203,13 +206,13 @@ export default function DashboardPage() {
           >
             <Card className="bg-gray-900/50 backdrop-blur-sm border-gray-800">
               <CardHeader className="flex flex-row items-center justify-between pb-2">
-                <CardTitle className="text-sm font-medium text-gray-400">
+                <CardTitle className="text-xs sm:text-sm font-medium text-gray-400">
                   Subscription
                 </CardTitle>
                 <Crown className="w-4 h-4 text-yellow-500" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold text-white capitalize">
+                <div className="text-xl sm:text-2xl font-bold text-white capitalize">
                   {dashboardData?.profile.subscription.plan || "Free"}
                 </div>
                 {dashboardData?.profile.subscription.plan === "free" && (
@@ -225,16 +228,16 @@ export default function DashboardPage() {
         </div>
 
         {/* Main Content */}
-        <Tabs defaultValue="overview" className="space-y-4">
-          <TabsList className="bg-gray-900/50 backdrop-blur-sm border-gray-800">
-            <TabsTrigger value="overview">Overview</TabsTrigger>
-            <TabsTrigger value="emotions">Emotional Insights</TabsTrigger>
-            <TabsTrigger value="activity">Recent Activity</TabsTrigger>
-            <TabsTrigger value="settings">Settings</TabsTrigger>
+        <Tabs defaultValue="overview" className="space-y-4" aria-label="Dashboard sections">
+          <TabsList className="bg-gray-900/50 backdrop-blur-sm border-gray-800 w-full overflow-x-auto flex-nowrap">
+            <TabsTrigger value="overview" className="text-xs sm:text-sm">Overview</TabsTrigger>
+            <TabsTrigger value="emotions" className="text-xs sm:text-sm">Emotions</TabsTrigger>
+            <TabsTrigger value="activity" className="text-xs sm:text-sm">Activity</TabsTrigger>
+            <TabsTrigger value="settings" className="text-xs sm:text-sm">Settings</TabsTrigger>
           </TabsList>
 
           <TabsContent value="overview" className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
               {/* Quick Actions */}
               <Card className="bg-gray-900/50 backdrop-blur-sm border-gray-800">
                 <CardHeader>
@@ -243,19 +246,19 @@ export default function DashboardPage() {
                 </CardHeader>
                 <CardContent className="space-y-2">
                   <Link href="/dashboard/chat" className="block">
-                    <Button className="w-full bg-gradient-to-r from-violet-600 to-pink-600 hover:from-violet-700 hover:to-pink-700">
+                    <Button className="w-full bg-gradient-to-r from-violet-600 to-pink-600 hover:from-violet-700 hover:to-pink-700" aria-label="Continue conversation with AI companion">
                       <MessageCircle className="w-4 h-4 mr-2" />
                       Continue Conversation
                     </Button>
                   </Link>
                   <Link href="/personality-test" className="block">
-                    <Button variant="outline" className="w-full">
+                    <Button variant="outline" className="w-full" aria-label="Retake the personality test">
                       <Brain className="w-4 h-4 mr-2" />
                       Retake Personality Test
                     </Button>
                   </Link>
                   <Link href="/pricing" className="block">
-                    <Button variant="outline" className="w-full">
+                    <Button variant="outline" className="w-full" aria-label="View available subscription plans">
                       <Crown className="w-4 h-4 mr-2" />
                       View Subscription Plans
                     </Button>

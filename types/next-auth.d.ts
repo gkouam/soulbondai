@@ -4,6 +4,8 @@ declare module "next-auth" {
   interface Session {
     user: {
       id: string
+      phoneNumber?: string | null
+      phoneVerified?: boolean
       subscription?: {
         plan: string
         status: string
@@ -19,6 +21,8 @@ declare module "next-auth" {
 
   interface User {
     id: string
+    phoneNumber?: string | null
+    phoneVerified?: boolean
   }
 }
 

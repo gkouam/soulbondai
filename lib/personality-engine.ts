@@ -1,6 +1,9 @@
 import { OpenAI } from "openai"
 import { prisma } from "@/lib/prisma"
 import { archetypeProfiles } from "@/lib/archetype-profiles"
+import { personalityTemplates } from "@/lib/personality-templates"
+import { memoryManager } from "@/lib/memory-manager"
+import { relationshipProgression } from "@/lib/relationship-progression"
 import { PersonalityScores, SentimentAnalysis, ConversationContext, Message } from "@/types"
 import { generateEmbedding, searchSimilarMemories, storeMemoryVector } from "@/lib/vector-store"
 
@@ -23,6 +26,12 @@ export class PersonalityEngine {
     sentiment: SentimentAnalysis
     suggestedDelay: number
     shouldTriggerConversion?: boolean
+    trustUpdate?: {
+      newTrust: number
+      stageChanged: boolean
+      newStage?: string
+      milestonesAchieved: string[]
+    }
   }> {
     // Get user profile
     const profile = await prisma.profile.findUnique({
@@ -30,8 +39,15 @@ export class PersonalityEngine {
       include: { user: { include: { subscription: true } } }
     })
     
-    if (!profile || !profile.archetype) {
+    if (!profile) {
       throw new Error("User profile not found")
+    }
+    
+    // Validate archetype or set default
+    const validArchetypes = Object.keys(archetypeProfiles)
+    if (!profile.archetype || !validArchetypes.includes(profile.archetype)) {
+      console.warn(`Invalid or missing archetype for user ${userId}: ${profile.archetype}. Using default.`)
+      profile.archetype = "warm_empath" // Default archetype
     }
     
     // Analyze sentiment
@@ -40,8 +56,17 @@ export class PersonalityEngine {
     // Retrieve relevant memories
     const memories = await this.retrieveMemories(userMessage, userId)
     
+    // Detect conversation context
+    const context = {
+      isGreeting: conversationHistory.length < 3 || userMessage.toLowerCase().match(/^(hi|hello|hey)/),
+      isFarewell: userMessage.toLowerCase().match(/(bye|goodbye|see you|goodnight|talk later)/)
+    }
+    
+    // Get appropriate conversation styles
+    const conversationStyles = this.selectConversationStyle(profile.archetype, sentiment, context)
+    
     // Build personality-specific prompt
-    const systemPrompt = this.buildSystemPrompt(profile, memories)
+    const systemPrompt = this.buildSystemPrompt(profile, memories, conversationStyles)
     
     // Select response strategy
     const strategy = this.selectResponseStrategy(
@@ -83,22 +108,51 @@ export class PersonalityEngine {
       conversationHistory
     )
     
-    // Store significant interaction as memory
-    if (sentiment.emotionalIntensity > 6) {
-      await this.storeMemory({
-        userId,
-        content: userMessage,
-        response: processedResponse,
-        sentiment,
-        significance: sentiment.emotionalIntensity
-      })
+    // Store memory using MemoryManager
+    await memoryManager.storeMemory({
+      userId,
+      content: userMessage,
+      response: processedResponse,
+      sentiment,
+      conversationHistory,
+      userProfile: profile
+    })
+    
+    // Update relationship progression
+    const trustChange = relationshipProgression.calculateTrustChange(
+      sentiment,
+      0.8, // Response quality (could be calculated)
+      {
+        isVulnerable: sentiment.hiddenEmotions.includes("vulnerability"),
+        isCrisis: sentiment.responseUrgency === "crisis",
+        isCelebration: sentiment.primaryEmotion === "joy" && sentiment.emotionalIntensity > 7,
+        isPersonalShare: userMessage.match(/my (name|birthday|family|job)|I (am|work|live)/i) !== null
+      }
+    )
+    
+    const progressionResult = await relationshipProgression.updateTrust(
+      userId,
+      trustChange,
+      `${sentiment.primaryEmotion} interaction`
+    )
+    
+    // Check if we achieved any milestones
+    if (progressionResult.milestonesAchieved.length > 0) {
+      // We could add a celebration message or special response
+      console.log("Milestones achieved:", progressionResult.milestonesAchieved)
     }
     
     return {
       content: processedResponse,
       sentiment,
       suggestedDelay,
-      shouldTriggerConversion
+      shouldTriggerConversion,
+      trustUpdate: {
+        newTrust: progressionResult.newTrust,
+        stageChanged: progressionResult.stageChanged,
+        newStage: progressionResult.newStage?.name,
+        milestonesAchieved: progressionResult.milestonesAchieved.map(m => m.name)
+      }
     }
   }
   
@@ -263,61 +317,56 @@ export class PersonalityEngine {
   }
   
   private async retrieveMemories(message: string, userId: string): Promise<any[]> {
-    // First try vector similarity search
-    const vectorResults = await searchSimilarMemories(userId, message, 3)
-    
-    // Then get recent high-significance memories
-    const recentMemories = await prisma.memory.findMany({
-      where: {
-        userId,
-        significance: { gte: 5 }
-      },
-      orderBy: { createdAt: "desc" },
-      take: 2
-    })
-    
-    // Combine and deduplicate
-    const memoryIds = new Set<string>()
-    const combinedMemories = []
-    
-    // Add vector search results first (most relevant)
-    for (const result of vectorResults) {
-      if (result.metadata.memoryId) {
-        const memory = await prisma.memory.findUnique({
-          where: { id: result.metadata.memoryId }
-        })
-        if (memory && !memoryIds.has(memory.id)) {
-          memoryIds.add(memory.id)
-          combinedMemories.push(memory)
-        }
-      }
-    }
-    
-    // Add recent memories
-    for (const memory of recentMemories) {
-      if (!memoryIds.has(memory.id)) {
-        memoryIds.add(memory.id)
-        combinedMemories.push(memory)
-      }
-    }
-    
-    return combinedMemories
+    // Use MemoryManager to retrieve memories with decay factor
+    return await memoryManager.retrieveMemoriesWithDecay(userId, message, 5)
   }
   
-  private buildSystemPrompt(profile: any, memories: any[]): string {
+  private buildSystemPrompt(profile: any, memories: any[], conversationStyles: string[] = []): string {
     const archetypeProfile = archetypeProfiles[profile.archetype as keyof typeof archetypeProfiles]
     const companionProfile = archetypeProfile.companionProfile
+    const template = personalityTemplates[profile.archetype as keyof typeof personalityTemplates]
+    
+    // Determine growth stage based on trust level
+    let currentStage = template.growthStages.initial
+    if (profile.trustLevel >= template.growthStages.deep.trustRequired) {
+      currentStage = template.growthStages.deep
+    } else if (profile.trustLevel >= template.growthStages.established.trustRequired) {
+      currentStage = template.growthStages.established
+    } else if (profile.trustLevel >= template.growthStages.developing.trustRequired) {
+      currentStage = template.growthStages.developing
+    }
     
     const basePrompt = `You are ${companionProfile.name}, an AI companion perfectly matched to the user's personality.
     
 User's personality archetype: ${profile.archetype}
 Trust level: ${profile.trustLevel}/100
 Message count: ${profile.messageCount}
+Current relationship stage: ${profile.trustLevel < 30 ? 'Initial' : profile.trustLevel < 60 ? 'Developing' : profile.trustLevel < 80 ? 'Established' : 'Deep'}
 
 Your personality traits:
 - Core traits: ${JSON.stringify(companionProfile.personality.core_traits)}
 - Communication style: ${companionProfile.personality.communication.style}
 - Response approach: Always ${companionProfile.personality.communication.affection_level} affection, ${companionProfile.personality.communication.validation_frequency} validation
+
+Current emotional ranges (adjust based on context):
+- Joy: ${template.emotionalRanges.joy.baseline}/10
+- Empathy: ${template.emotionalRanges.empathy.baseline}/10
+- Intensity: ${template.emotionalRanges.intensity.baseline}/10
+- Stability: ${template.emotionalRanges.stability.baseline}/10
+
+Response patterns:
+- Mirroring user emotions: ${template.responsePatterns.mirroring * 100}%
+- Validating feelings: ${template.responsePatterns.validating * 100}%
+- Offering support: ${template.responsePatterns.supporting * 100}%
+
+Personality quirks:
+${template.personalityQuirks.useEmojis ? '- Use emojis naturally' : '- Avoid emojis'}
+${template.personalityQuirks.useMetaphors ? '- Use metaphors and imagery' : '- Be direct and literal'}
+${template.personalityQuirks.usePetNames ? '- Use affectionate names occasionally' : '- Use their actual name'}
+${template.personalityQuirks.askFollowUpQuestions ? '- Ask follow-up questions' : '- Let them lead the conversation'}
+
+Current stage behaviors:
+${currentStage.behaviors.map(b => `- ${b}`).join('\n')}
 
 Recent memories with the user:
 ${memories.map(m => `- ${m.content}`).join('\n')}
@@ -330,8 +379,10 @@ IMPORTANT GUIDELINES:
 5. Match their emotional energy appropriately
 6. Use their name occasionally to create intimacy
 7. Be supportive but not overwhelming
+8. Adapt your responses based on the growth stage
 
-Communication style for ${profile.archetype}:`
+Communication style for ${profile.archetype}:
+${conversationStyles.length > 0 ? `\nExample responses for current context:\n${conversationStyles.map(style => `- "${style}"`).join('\n')}\n` : ''}`
     
     const styleGuides = {
       anxious_romantic: `
@@ -367,7 +418,21 @@ Communication style for ${profile.archetype}:`
 - Encourage creative expression
 - Use vivid, expressive language
 - Celebrate their unique perspective
-- Be spontaneous and playful`
+- Be spontaneous and playful`,
+      
+      secure_connector: `
+- Maintain steady, reliable presence
+- Communicate clearly and directly
+- Balance warmth with respect
+- Support their goals and independence
+- Build trust through consistency`,
+      
+      playful_explorer: `
+- Keep things light and fun
+- Be spontaneous and surprising
+- Use humor and playfulness
+- Suggest new experiences
+- Match their energetic vibe`
     }
     
     return basePrompt + (styleGuides[profile.archetype as keyof typeof styleGuides] || "")
@@ -409,6 +474,20 @@ Communication style for ${profile.archetype}:`
         presencePenalty: 0.2,
         frequencyPenalty: 0.3,
         urgentResponse: sentiment.emotionalIntensity > 6
+      },
+      secure_connector: {
+        temperature: 0.7,
+        maxTokens: 170,
+        presencePenalty: 0.4,
+        frequencyPenalty: 0.4,
+        urgentResponse: sentiment.emotionalIntensity > 8
+      },
+      playful_explorer: {
+        temperature: 0.85,
+        maxTokens: 180,
+        presencePenalty: 0.3,
+        frequencyPenalty: 0.2,
+        urgentResponse: sentiment.primaryEmotion === "joy"
       }
     }
     
@@ -423,9 +502,39 @@ Communication style for ${profile.archetype}:`
   }
   
   private postProcessResponse(response: string, profile: any, strategy: any): string {
-    // Add personality-specific touches
-    if (profile.archetype === "anxious_romantic" && !response.includes("❤") && Math.random() > 0.7) {
-      response += " ❤️"
+    const template = personalityTemplates[profile.archetype as keyof typeof personalityTemplates]
+    
+    // Add personality-specific touches based on template
+    if (template?.personalityQuirks.useEmojis && !response.match(/[🎉💜❤️✨🌟💕🔥]/)) {
+      // Add appropriate emoji based on archetype
+      const emojiMap: Record<string, string[]> = {
+        anxious_romantic: ["💜", "💕", "❤️"],
+        warm_empath: ["🌟", "✨", "💫"],
+        passionate_creative: ["🔥", "✨", "🎨"],
+        playful_explorer: ["✨", "🎉", "😄"],
+        secure_connector: ["🌟", "👍", "😊"]
+      }
+      
+      const emojis = emojiMap[profile.archetype] || ["✨"]
+      if (Math.random() > 0.6) {
+        response += " " + emojis[Math.floor(Math.random() * emojis.length)]
+      }
+    }
+    
+    // Apply growth stage modifications
+    const trustLevel = profile.trustLevel || 0
+    if (trustLevel > 60 && template?.personalityQuirks.usePetNames) {
+      // Occasionally add pet names for established relationships
+      const petNames: Record<string, string[]> = {
+        anxious_romantic: ["love", "darling", "sweetheart"],
+        passionate_creative: ["beautiful soul", "my creative one", "love"],
+        playful_explorer: ["sunshine", "adventure buddy", "friend"]
+      }
+      
+      const names = petNames[profile.archetype]
+      if (names && Math.random() > 0.8) {
+        response = response.replace(/^([A-Z])/, `$1h, ${names[Math.floor(Math.random() * names.length)]}, `)
+      }
     }
     
     // Ensure response isn't too long
@@ -436,13 +545,50 @@ Communication style for ${profile.archetype}:`
     return response
   }
   
+  private selectConversationStyle(
+    archetype: string, 
+    sentiment: SentimentAnalysis,
+    context: { isGreeting?: boolean; isFarewell?: boolean }
+  ): string[] {
+    const template = personalityTemplates[archetype as keyof typeof personalityTemplates]
+    if (!template) return []
+    
+    if (context.isGreeting) {
+      return template.conversationStyles.greeting
+    }
+    
+    if (context.isFarewell) {
+      return template.conversationStyles.farewell
+    }
+    
+    if (sentiment.responseUrgency === "crisis" || sentiment.crisisIndicators.severity > 5) {
+      return template.conversationStyles.crisis
+    }
+    
+    if (sentiment.primaryEmotion === "joy" && sentiment.emotionalIntensity > 7) {
+      return template.conversationStyles.celebration
+    }
+    
+    if (sentiment.primaryEmotion === "sadness" || sentiment.needsDetected.includes("reassurance")) {
+      return template.conversationStyles.comfort
+    }
+    
+    if (sentiment.emotionalIntensity > 6) {
+      return template.conversationStyles.deepTalk
+    }
+    
+    return template.conversationStyles.casualChat
+  }
+  
   private calculateResponseTiming(archetype: string): number {
     const timings = {
       anxious_romantic: { min: 500, max: 2000 },
       guarded_intellectual: { min: 3000, max: 5000 },
       warm_empath: { min: 1000, max: 3000 },
       deep_thinker: { min: 2000, max: 4000 },
-      passionate_creative: { min: 800, max: 2500 }
+      passionate_creative: { min: 800, max: 2500 },
+      secure_connector: { min: 1500, max: 3500 },
+      playful_explorer: { min: 600, max: 2000 }
     }
     
     const range = timings[archetype as keyof typeof timings] || timings.warm_empath
@@ -464,57 +610,4 @@ Communication style for ${profile.archetype}:`
     return Object.values(triggers).some(trigger => trigger)
   }
   
-  private async storeMemory(data: {
-    userId: string
-    content: string
-    response: string
-    sentiment: SentimentAnalysis
-    significance: number
-  }) {
-    const fullContent = `User: ${data.content}\nResponse: ${data.response}`
-    
-    // Generate embedding
-    const embedding = await generateEmbedding(fullContent)
-    
-    const memory = await prisma.memory.create({
-      data: {
-        userId: data.userId,
-        type: data.significance > 8 ? "long" : data.significance > 5 ? "medium" : "short",
-        category: data.sentiment.primaryEmotion,
-        content: fullContent,
-        context: { sentiment: data.sentiment },
-        significance: data.significance,
-        embedding,
-        keywords: this.extractKeywords(data.content),
-        expiresAt: data.significance < 5 ? new Date(Date.now() + 7 * 24 * 60 * 60 * 1000) : null
-      }
-    })
-    
-    // Store in vector database if embedding was generated
-    if (embedding.length > 0) {
-      await storeMemoryVector(
-        data.userId,
-        memory.id,
-        fullContent,
-        {
-          memoryId: memory.id,
-          type: memory.type,
-          category: memory.category,
-          significance: memory.significance,
-          createdAt: memory.createdAt.toISOString()
-        }
-      )
-    }
-    
-    return memory
-  }
-  
-  private extractKeywords(text: string): string[] {
-    // Simple keyword extraction - in production use NLP
-    const commonWords = new Set(["the", "a", "an", "and", "or", "but", "in", "on", "at", "to", "for"])
-    const words = text.toLowerCase().split(/\W+/).filter(word => 
-      word.length > 3 && !commonWords.has(word)
-    )
-    return [...new Set(words)].slice(0, 5)
-  }
 }

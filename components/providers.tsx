@@ -7,6 +7,7 @@ import { Toaster } from "sonner"
 import { ErrorBoundary } from "@/components/error-boundary"
 import { AnalyticsProvider } from "@/components/analytics-provider"
 import { ToastProvider } from "@/components/ui/toast-provider"
+import { GDPRConsentBanner } from "@/components/gdpr-consent-banner"
 
 export function Providers({ children }: { children: React.ReactNode }) {
   const [queryClient] = useState(() => new QueryClient({
@@ -33,6 +34,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
           <ToastProvider>
             <AnalyticsProvider>
               {children}
+              <GDPRConsentBanner />
             </AnalyticsProvider>
           </ToastProvider>
           <Toaster 
