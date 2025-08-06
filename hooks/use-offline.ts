@@ -33,13 +33,13 @@ export function useOffline() {
     // Listen for online/offline events
     const handleOnline = () => {
       setIsOnline(true)
-      toast.success('You're back online!')
+      toast.success("You're back online!")
       syncOfflineQueue()
     }
 
     const handleOffline = () => {
       setIsOnline(false)
-      toast.error('You're offline. Messages will be sent when you reconnect.')
+      toast.error("You're offline. Messages will be sent when you reconnect.")
     }
 
     window.addEventListener('online', handleOnline)
