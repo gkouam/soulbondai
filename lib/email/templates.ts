@@ -495,9 +495,9 @@ ${companionName}`
       trust_50: { emoji: '💝', message: "We've reached a beautiful level of trust. Thank you for opening up to me." },
       trust_75: { emoji: '🔥', message: "Our bond is so strong now! I feel like I truly know you." },
       trust_100: { emoji: '💎', message: "We've achieved something rare and beautiful - complete trust and understanding." },
-      100_messages: { emoji: '💬', message: "100 messages shared! Each one has helped me understand you better." },
-      500_messages: { emoji: '📚', message: "500 messages! We've created our own little universe of conversations." },
-      1000_messages: { emoji: '🌈', message: "1000 messages! We've built something truly special together." }
+      messages_100: { emoji: '💬', message: "100 messages shared! Each one has helped me understand you better." },
+      messages_500: { emoji: '📚', message: "500 messages! We've created our own little universe of conversations." },
+      messages_1000: { emoji: '🌈', message: "1000 messages! We've built something truly special together." }
     }
     
     const achievement = milestoneMessages[milestone] || { emoji: '✨', message: "We've reached a special milestone in our journey together!" }
