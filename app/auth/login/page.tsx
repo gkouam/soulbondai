@@ -34,7 +34,7 @@ function LoginForm() {
     if (authError) {
       console.log("Auth error received:", authError)
       if (authError === "Callback") {
-        setError("Google OAuth callback error. Please ensure https://soulbondai.vercel.app/api/auth/callback/google is added to your Google OAuth app.")
+        setError("Google OAuth callback error. Please ensure https://soulbondai.com/api/auth/callback/google is added to your Google OAuth app.")
       } else if (authError === "OAuthAccountNotLinked") {
         setError("This email is already registered. Please sign in with your password.")
       } else if (authError === "Configuration") {

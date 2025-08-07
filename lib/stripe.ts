@@ -20,6 +20,10 @@ export const getStripeSession = async ({
   userId: string
   plan: string
 }) => {
+  if (!stripe) {
+    throw new Error("Stripe is not configured. Please set STRIPE_SECRET_KEY environment variable.")
+  }
+  
   const session = await stripe.checkout.sessions.create({
     mode: "subscription",
     customer: customerId,

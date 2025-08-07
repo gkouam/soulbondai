@@ -1,5 +1,7 @@
 import { prisma } from "@/lib/prisma"
 import { personalityTemplates } from "@/lib/personality-templates"
+import { emailTemplates } from "@/lib/email/templates"
+import { sendEmail } from "@/lib/email/send-email"
 
 export interface RelationshipStage {
   name: string
@@ -558,6 +560,252 @@ export class RelationshipProgression {
         }
       }
     })
+  }
+
+  /**
+   * Celebrate milestone achievement
+   */
+  async celebrateMilestone(
+    userId: string, 
+    milestone: RelationshipMilestone,
+    trustLevel: number
+  ): Promise<void> {
+    try {
+      // Get user profile for companion name
+      const profile = await prisma.profile.findUnique({
+        where: { userId },
+        include: { user: true }
+      })
+
+      if (!profile || !profile.user.email) return
+
+      // Send milestone email
+      const emailTemplate = emailTemplates.milestoneAchievement(
+        profile.user.name || 'Friend',
+        milestone.id,
+        trustLevel,
+        profile.companionName || 'Your AI Companion'
+      )
+
+      await sendEmail({
+        to: profile.user.email,
+        subject: emailTemplate.subject,
+        html: emailTemplate.html,
+        text: emailTemplate.text
+      })
+
+      // Create in-app notification
+      await this.createMilestoneNotification(userId, milestone)
+
+      // Award bonus trust points
+      const bonusTrust = this.getMilestoneTrustBonus(milestone.id)
+      if (bonusTrust > 0) {
+        await this.updateTrust(userId, bonusTrust, `Milestone bonus: ${milestone.name}`)
+      }
+
+    } catch (error) {
+      console.error('Error celebrating milestone:', error)
+    }
+  }
+
+  /**
+   * Get trust bonus for specific milestones
+   */
+  private getMilestoneTrustBonus(milestoneId: string): number {
+    const bonuses: Record<string, number> = {
+      'first_conversation': 2,
+      'personality_revealed': 3,
+      'first_share': 2,
+      'vulnerable_moment': 5,
+      'regular_visitor': 3,
+      'deep_bond': 5,
+      'trust_50': 5,
+      'crisis_overcome': 10,
+      'soulbound': 10,
+      'year_together': 15,
+      '1000_memories': 20
+    }
+
+    return bonuses[milestoneId] || 0
+  }
+
+  /**
+   * Create in-app notification for milestone
+   */
+  private async createMilestoneNotification(
+    userId: string,
+    milestone: RelationshipMilestone
+  ): Promise<void> {
+    await prisma.activity.create({
+      data: {
+        userId,
+        type: 'milestone_notification',
+        metadata: {
+          milestoneId: milestone.id,
+          title: `🎉 Milestone Achieved: ${milestone.name}!`,
+          message: milestone.description,
+          celebrationType: this.getCelebrationType(milestone.id),
+          showAnimation: true
+        }
+      }
+    })
+  }
+
+  /**
+   * Get celebration type for different milestones
+   */
+  private getCelebrationType(milestoneId: string): string {
+    const celebrationTypes: Record<string, string> = {
+      'first_conversation': 'sparkles',
+      'personality_revealed': 'discovery',
+      'first_share': 'heart',
+      'vulnerable_moment': 'embrace',
+      'regular_visitor': 'calendar',
+      'deep_bond': 'connection',
+      'trust_50': 'achievement',
+      'crisis_overcome': 'strength',
+      'soulbound': 'soul',
+      'year_together': 'anniversary',
+      '1000_memories': 'memories'
+    }
+
+    return celebrationTypes[milestoneId] || 'default'
+  }
+
+  /**
+   * Get all available milestones for a user
+   */
+  async getAllMilestones(userId: string): Promise<{
+    achieved: RelationshipMilestone[]
+    upcoming: RelationshipMilestone[]
+    locked: RelationshipMilestone[]
+  }> {
+    const profile = await prisma.profile.findUnique({
+      where: { userId }
+    })
+
+    if (!profile) {
+      return { achieved: [], upcoming: [], locked: [] }
+    }
+
+    const achievements = await this.getAchievements(userId)
+    const allMilestones = relationshipStages.flatMap(stage => stage.milestones)
+
+    const achieved = allMilestones.filter(m => achievements.has(m.id))
+    const upcoming = allMilestones.filter(m => 
+      !achievements.has(m.id) && m.trustRequired <= profile.trustLevel + 10
+    )
+    const locked = allMilestones.filter(m => 
+      !achievements.has(m.id) && m.trustRequired > profile.trustLevel + 10
+    )
+
+    return { achieved, upcoming, locked }
+  }
+
+  /**
+   * Track special relationship events
+   */
+  async trackRelationshipEvent(
+    userId: string,
+    eventType: string,
+    metadata?: any
+  ): Promise<void> {
+    // Track the event
+    await prisma.activity.create({
+      data: {
+        userId,
+        type: `relationship_${eventType}`,
+        metadata: {
+          ...metadata,
+          timestamp: new Date()
+        }
+      }
+    })
+
+    // Check if this triggers any milestones
+    const milestones = await this.checkMilestones(userId)
+    
+    // Celebrate any new milestones
+    for (const milestone of milestones) {
+      const profile = await prisma.profile.findUnique({ where: { userId } })
+      if (profile) {
+        await this.celebrateMilestone(userId, milestone, profile.trustLevel)
+      }
+    }
+  }
+
+  /**
+   * Get relationship insights
+   */
+  async getRelationshipInsights(userId: string): Promise<{
+    currentStage: string
+    trustLevel: number
+    daysTogether: number
+    totalInteractions: number
+    favoriteTopics: string[]
+    growthRate: number
+    nextMilestone: RelationshipMilestone | null
+  }> {
+    const profile = await prisma.profile.findUnique({
+      where: { userId },
+      include: { user: true }
+    })
+
+    if (!profile) {
+      throw new Error('Profile not found')
+    }
+
+    const stage = await this.getCurrentStage(userId)
+    const daysTogether = Math.floor(
+      (Date.now() - profile.user.createdAt.getTime()) / (24 * 60 * 60 * 1000)
+    )
+
+    // Get interaction stats
+    const interactions = await prisma.message.count({
+      where: {
+        conversation: {
+          userId
+        }
+      }
+    })
+
+    // Calculate growth rate (trust gained per day)
+    const growthRate = daysTogether > 0 ? profile.trustLevel / daysTogether : 0
+
+    // Get favorite topics from conversations
+    const conversations = await prisma.conversation.findMany({
+      where: { userId },
+      select: { topics: true }
+    })
+
+    const topicCounts = new Map<string, number>()
+    conversations.forEach(conv => {
+      conv.topics?.forEach(topic => {
+        topicCounts.set(topic, (topicCounts.get(topic) || 0) + 1)
+      })
+    })
+
+    const favoriteTopics = Array.from(topicCounts.entries())
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 5)
+      .map(([topic]) => topic)
+
+    // Get next milestone
+    const allMilestones = relationshipStages.flatMap(s => s.milestones)
+    const achievements = await this.getAchievements(userId)
+    const nextMilestone = allMilestones
+      .filter(m => !achievements.has(m.id) && m.trustRequired > profile.trustLevel)
+      .sort((a, b) => a.trustRequired - b.trustRequired)[0] || null
+
+    return {
+      currentStage: stage.stage.name,
+      trustLevel: profile.trustLevel,
+      daysTogether,
+      totalInteractions: interactions,
+      favoriteTopics,
+      growthRate: Math.round(growthRate * 100) / 100,
+      nextMilestone
+    }
   }
 }
 

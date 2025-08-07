@@ -1,9 +1,12 @@
 import Stripe from "stripe"
 import { prisma } from "@/lib/prisma"
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: "2023-10-16"
-})
+// Initialize Stripe only if API key is available
+const stripe = process.env.STRIPE_SECRET_KEY 
+  ? new Stripe(process.env.STRIPE_SECRET_KEY, {
+      apiVersion: "2023-10-16"
+    })
+  : null
 
 export interface PricingTier {
   id: string
@@ -235,6 +238,10 @@ export async function createDynamicCheckoutSession(
   successUrl: string,
   cancelUrl: string
 ): Promise<string> {
+  if (!stripe) {
+    throw new Error("Stripe is not configured. Please set STRIPE_SECRET_KEY environment variable.")
+  }
+  
   const pricing = await calculateDynamicPrice(userId, tier, interval)
   const pricingTier = pricingTiers[tier]
   
@@ -251,7 +258,7 @@ export async function createDynamicCheckoutSession(
   let customerId = user.stripeCustomerId
   
   if (!customerId) {
-    const customer = await stripe.customers.create({
+    const customer = await stripe!.customers.create({
       email: user.email,
       metadata: { userId }
     })
@@ -267,7 +274,7 @@ export async function createDynamicCheckoutSession(
   let couponId: string | undefined
   
   if (pricing.discount > 0) {
-    const coupon = await stripe.coupons.create({
+    const coupon = await stripe!.coupons.create({
       amount_off: Math.round(pricing.discount * 100), // Convert to cents
       currency: "usd",
       duration: "once",
@@ -278,7 +285,7 @@ export async function createDynamicCheckoutSession(
   }
   
   // Create checkout session
-  const session = await stripe.checkout.sessions.create({
+  const session = await stripe!.checkout.sessions.create({
     customer: customerId,
     mode: "subscription",
     payment_method_types: ["card"],

@@ -6,6 +6,7 @@ import { memoryManager } from "@/lib/memory-manager"
 import { relationshipProgression } from "@/lib/relationship-progression"
 import { PersonalityScores, SentimentAnalysis, ConversationContext, Message } from "@/types"
 import { generateEmbedding, searchSimilarMemories, storeMemoryVector } from "@/lib/vector-store"
+import { CrisisResponseProtocol } from "@/lib/crisis-response"
 
 export class PersonalityEngine {
   private openai: OpenAI
@@ -52,6 +53,29 @@ export class PersonalityEngine {
     
     // Analyze sentiment
     const sentiment = await this.analyzeSentiment(userMessage, conversationHistory)
+    
+    // Handle crisis if detected
+    if (sentiment.responseUrgency === 'crisis' && sentiment.crisisIndicators) {
+      const crisisResponse = await CrisisResponseProtocol.generateResponse(
+        sentiment.crisisIndicators,
+        userId
+      )
+      
+      // If crisis is severe, override normal response
+      if (crisisResponse.escalationRequired) {
+        return {
+          content: crisisResponse.message,
+          sentiment,
+          suggestedDelay: 0, // Immediate response for crisis
+          shouldTriggerConversion: false,
+          crisisResponse: {
+            resources: crisisResponse.resources,
+            escalated: true,
+            action: crisisResponse.action
+          }
+        }
+      }
+    }
     
     // Retrieve relevant memories
     const memories = await this.retrieveMemories(userMessage, userId)
@@ -236,6 +260,11 @@ export class PersonalityEngine {
   }
   
   private detectCrisisIndicators(message: string): any {
+    // Use the comprehensive crisis response protocol
+    return CrisisResponseProtocol.detectCrisisIndicators(message)
+  }
+  
+  private async handleCrisisResponseOld(message: string): any {
     const indicators = {
       suicidalIdeation: 0,
       selfHarm: 0,

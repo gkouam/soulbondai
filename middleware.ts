@@ -2,7 +2,7 @@ import { NextResponse } from "next/server"
 import type { NextRequest } from "next/server"
 import { getToken } from "next-auth/jwt"
 import { rateLimiters, getIdentifier, rateLimitResponse } from "@/lib/rate-limiter"
-import { trackDevice } from "@/lib/device-tracking"
+// Device tracking moved to API routes to avoid Edge runtime issues
 
 // Paths that should be rate limited
 const rateLimitedPaths = {
@@ -121,12 +121,8 @@ export async function middleware(request: NextRequest) {
       response.headers.set("x-utm-campaign", utm_campaign || "")
     }
     
-    // Track device for authenticated users (non-blocking)
-    if (!request.nextUrl.pathname.startsWith("/api/")) {
-      trackDevice(request as any).catch(error => {
-        console.error("Device tracking error in middleware:", error)
-      })
-    }
+    // Device tracking moved to API routes to avoid Edge runtime issues
+    // Devices are now tracked in authenticated API routes instead
     
     // Set device fingerprint cookie if not present
     if (!request.cookies.get('device_fingerprint')) {
