@@ -73,7 +73,8 @@ export function getEnabledProviders(): Provider[] {
             access_type: "offline",
             response_type: "code"
           }
-        }
+        },
+        allowDangerousEmailAccountLinking: true
       })
     )
   }
