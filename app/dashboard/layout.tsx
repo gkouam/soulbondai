@@ -6,10 +6,11 @@ import { usePathname } from "next/navigation"
 import { motion } from "framer-motion"
 import { 
   MessageSquare, Settings, CreditCard, Users, 
-  Shield, Menu, X, Home, Sparkles, BarChart3
+  Shield, Menu, X, Home, Sparkles, BarChart3, LogOut, User
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
+import { signOut, useSession } from "next-auth/react"
 
 const navigation = [
   { name: "Dashboard", href: "/dashboard", icon: Home },
@@ -28,6 +29,7 @@ export default function DashboardLayout({
 }) {
   const pathname = usePathname()
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+  const { data: session } = useSession()
   
   return (
     <div className="min-h-screen bg-gray-50">
@@ -96,8 +98,24 @@ export default function DashboardLayout({
             })}
           </nav>
           
-          {/* Bottom section */}
-          <div className="absolute bottom-6 left-4 right-4">
+          {/* User info and logout */}
+          <div className="absolute bottom-6 left-4 right-4 space-y-3">
+            {/* User info */}
+            {session?.user && (
+              <div className="flex items-center px-4 py-3 bg-gray-50 rounded-lg">
+                <User className="w-5 h-5 mr-3 text-gray-400" />
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-gray-900 truncate">
+                    {session.user.name || session.user.email}
+                  </p>
+                  <p className="text-xs text-gray-500 truncate">
+                    {session.user.email}
+                  </p>
+                </div>
+              </div>
+            )}
+            
+            {/* Upgrade button */}
             <Link
               href="/pricing"
               className="flex items-center justify-center px-4 py-3 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-lg hover:shadow-lg transition-shadow"
@@ -105,6 +123,15 @@ export default function DashboardLayout({
               <Crown className="w-5 h-5 mr-2" />
               Upgrade Plan
             </Link>
+            
+            {/* Logout button */}
+            <button
+              onClick={() => signOut({ callbackUrl: '/' })}
+              className="flex items-center justify-center w-full px-4 py-3 text-red-600 bg-red-50 rounded-lg hover:bg-red-100 transition-colors"
+            >
+              <LogOut className="w-5 h-5 mr-2" />
+              Sign Out
+            </button>
           </div>
         </div>
       </aside>
@@ -114,6 +141,26 @@ export default function DashboardLayout({
         "transition-all duration-200",
         "lg:pl-64"
       )}>
+        {/* Top bar with user menu - visible on larger screens */}
+        <div className="sticky top-0 z-30 bg-white border-b border-gray-200 px-4 py-3 hidden lg:flex lg:items-center lg:justify-end">
+          <div className="flex items-center space-x-4">
+            {session?.user && (
+              <>
+                <span className="text-sm text-gray-700">
+                  {session.user.email}
+                </span>
+                <button
+                  onClick={() => signOut({ callbackUrl: '/' })}
+                  className="inline-flex items-center px-3 py-1.5 text-sm text-red-600 hover:text-red-700 hover:bg-red-50 rounded-md transition-colors"
+                >
+                  <LogOut className="w-4 h-4 mr-1.5" />
+                  Sign Out
+                </button>
+              </>
+            )}
+          </div>
+        </div>
+        
         <div className="min-h-screen">
           {children}
         </div>
