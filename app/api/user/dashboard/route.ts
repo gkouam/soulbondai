@@ -36,8 +36,7 @@ export async function GET(req: Request) {
       },
       select: {
         createdAt: true,
-        sentiment: true,
-        responseTime: true
+        metadata: true
       }
     })
     
@@ -116,11 +115,15 @@ export async function GET(req: Request) {
     }
     
     messages.forEach(m => {
-      if (m.sentiment && typeof m.sentiment === "object") {
-        const sentiment = m.sentiment as any
-        const primaryEmotion = sentiment.primaryEmotion?.toLowerCase()
-        if (primaryEmotion && sentimentMap[primaryEmotion]) {
-          emotionalBreakdown[sentimentMap[primaryEmotion]]++
+      // Check if metadata contains sentiment information
+      if (m.metadata && typeof m.metadata === "object") {
+        const metadata = m.metadata as any
+        const sentiment = metadata.sentiment || metadata.emotion
+        if (sentiment) {
+          const primaryEmotion = (typeof sentiment === "string" ? sentiment : sentiment.primaryEmotion)?.toLowerCase()
+          if (primaryEmotion && sentimentMap[primaryEmotion]) {
+            emotionalBreakdown[sentimentMap[primaryEmotion]]++
+          }
         }
       }
     })
@@ -134,10 +137,16 @@ export async function GET(req: Request) {
       })
     }
     
-    // Calculate average response time
-    const responseTimes = messages
-      .filter(m => m.responseTime)
-      .map(m => m.responseTime || 0)
+    // Calculate average response time from metadata if available
+    const responseTimes: number[] = []
+    messages.forEach(m => {
+      if (m.metadata && typeof m.metadata === "object") {
+        const metadata = m.metadata as any
+        if (metadata.responseTime && typeof metadata.responseTime === "number") {
+          responseTimes.push(metadata.responseTime)
+        }
+      }
+    })
     
     const averageResponseTime = responseTimes.length > 0
       ? Math.round(responseTimes.reduce((a, b) => a + b, 0) / responseTimes.length)
@@ -184,4 +193,4 @@ export async function GET(req: Request) {
       { status: 500 }
     )
   }
-}
+}// Force redeploy Thu Aug  7 04:07:15 CDT 2025

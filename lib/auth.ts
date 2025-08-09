@@ -114,6 +114,8 @@ export const authOptions: NextAuthOptions = {
       return token
     },
     async signIn({ user, account, profile }) {
+      let userIdForUpdate: string | undefined
+      
       if (account?.provider) {
         // Check if user exists
         const existingUser = await prisma.user.findUnique({
@@ -128,8 +130,11 @@ export const authOptions: NextAuthOptions = {
               name: user.name || profile?.name || "User",
               image: user.image || profile?.image,
               emailVerified: new Date(), // OAuth emails are pre-verified
+              lastLogin: new Date(), // Set lastLogin during creation
             }
           })
+          
+          userIdForUpdate = newUser.id
           
           // Create default subscription
           await prisma.subscription.create({
@@ -142,6 +147,16 @@ export const authOptions: NextAuthOptions = {
             }
           })
           
+          // Create default profile
+          await prisma.profile.create({
+            data: {
+              userId: newUser.id,
+              trustLevel: 0,
+              messageCount: 0,
+              personalityTestCompleted: false,
+            }
+          })
+          
           // Log OAuth registration
           await AuditLogger.log({
             action: AuditAction.OAUTH_LOGIN,
@@ -150,6 +165,14 @@ export const authOptions: NextAuthOptions = {
             success: true
           })
         } else {
+          userIdForUpdate = existingUser.id
+          
+          // Update last login for existing user
+          await prisma.user.update({
+            where: { id: existingUser.id },
+            data: { lastLogin: new Date() }
+          })
+          
           // Log OAuth login
           await AuditLogger.log({
             action: AuditAction.OAUTH_LOGIN,
@@ -158,7 +181,13 @@ export const authOptions: NextAuthOptions = {
             success: true
           })
         }
-      } else {
+      } else if (user?.id) {
+        // For credentials login, update last login
+        await prisma.user.update({
+          where: { id: user.id },
+          data: { lastLogin: new Date() }
+        })
+        
         // Log credentials login
         await AuditLogger.log({
           action: AuditAction.USER_LOGIN,
@@ -167,12 +196,6 @@ export const authOptions: NextAuthOptions = {
           success: true
         })
       }
-      
-      // Update last login
-      await prisma.user.update({
-        where: { id: user.id },
-        data: { lastLogin: new Date() }
-      })
       
       return true
     },

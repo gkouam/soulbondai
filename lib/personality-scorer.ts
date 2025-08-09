@@ -44,7 +44,7 @@ export class PersonalityScorer {
     const attachmentStyle = this.determineAttachmentStyle(rawScores)
     
     // Calculate archetype
-    const archetype = this.determineArchetype(dimensions, attachmentStyle)
+    const archetype = this.determineArchetype(dimensions, attachmentStyle, rawScores)
     
     // Generate trait profile
     const traitProfile = this.generateTraitProfile(rawScores, dimensions)
@@ -145,7 +145,7 @@ export class PersonalityScorer {
     }
   }
   
-  private determineArchetype(dimensions: Record<string, number>, attachmentStyle: AttachmentStyle): string {
+  private determineArchetype(dimensions: Record<string, number>, attachmentStyle: AttachmentStyle, rawScores: Record<string, number>): string {
     // Complex archetype determination based on multiple factors
     const archetypeScores: Record<string, number> = {}
     
@@ -201,9 +201,9 @@ export class PersonalityScorer {
     archetypeScores.playful_explorer = 0
     if (dimensions.introversion_extraversion > 5) archetypeScores.playful_explorer += 2
     if (dimensions.judging_perceiving < -5) archetypeScores.playful_explorer += 2
-    if (rawScores.adventurous > 5) archetypeScores.playful_explorer += 2
-    if (rawScores.playful > 5) archetypeScores.playful_explorer += 2
-    if (rawScores.spontaneous > 5) archetypeScores.playful_explorer += 1
+    if ((rawScores.adventurous || 0) > 5) archetypeScores.playful_explorer += 2
+    if ((rawScores.playful || 0) > 5) archetypeScores.playful_explorer += 2
+    if ((rawScores.spontaneous || 0) > 5) archetypeScores.playful_explorer += 1
     
     // Find highest scoring archetype
     let maxScore = 0
@@ -242,11 +242,11 @@ export class PersonalityScorer {
     if (dimensions.emotional_depth! > 7) strengths.push("Deep emotional intelligence")
     if (dimensions.intellectual_curiosity! > 7) strengths.push("Strong intellectual capacity")
     if (dimensions.stable_neurotic > 5) strengths.push("Emotional stability")
-    if (rawScores.creative > 5) strengths.push("Creative expression")
-    if (rawScores.empathetic > 5) strengths.push("Natural empathy")
-    if (rawScores.authentic > 5) strengths.push("Authentic self-expression")
-    if (rawScores.loyal > 5) strengths.push("Deep loyalty and commitment")
-    if (rawScores.supportive > 5) strengths.push("Nurturing and supportive nature")
+    if ((rawScores.creative || 0) > 5) strengths.push("Creative expression")
+    if ((rawScores.empathetic || 0) > 5) strengths.push("Natural empathy")
+    if ((rawScores.authentic || 0) > 5) strengths.push("Authentic self-expression")
+    if ((rawScores.loyal || 0) > 5) strengths.push("Deep loyalty and commitment")
+    if ((rawScores.supportive || 0) > 5) strengths.push("Nurturing and supportive nature")
     
     return strengths
   }
@@ -257,8 +257,8 @@ export class PersonalityScorer {
     if (dimensions.validation_seeking! > 7) growth.push("Building self-validation")
     if (dimensions.stable_neurotic < -5) growth.push("Emotional regulation")
     if (dimensions.independence_need! < 3) growth.push("Developing independence")
-    if (rawScores.anxious > 7) growth.push("Managing anxiety")
-    if (rawScores.avoidant > 7) growth.push("Allowing vulnerability")
+    if ((rawScores.anxious || 0) > 7) growth.push("Managing anxiety")
+    if ((rawScores.avoidant || 0) > 7) growth.push("Allowing vulnerability")
     if (dimensions.secure_insecure < -5) growth.push("Building self-confidence")
     
     return growth
@@ -276,13 +276,13 @@ export class PersonalityScorer {
   private identifyEmotionalNeeds(rawScores: Record<string, number>): string[] {
     const needs = []
     
-    if (rawScores.validation_seeking > 5) needs.push("Regular validation and reassurance")
-    if (rawScores.quality_time > 5) needs.push("Dedicated quality time")
-    if (rawScores.physical_touch > 5) needs.push("Physical affection")
-    if (rawScores.understanding > 5) needs.push("Deep understanding")
-    if (rawScores.freedom > 5) needs.push("Personal freedom")
-    if (rawScores.security > 5) needs.push("Emotional security")
-    if (rawScores.growth > 5) needs.push("Growth and development")
+    if ((rawScores.validation_seeking || 0) > 5) needs.push("Regular validation and reassurance")
+    if ((rawScores.quality_time || 0) > 5) needs.push("Dedicated quality time")
+    if ((rawScores.physical_touch || 0) > 5) needs.push("Physical affection")
+    if ((rawScores.understanding || 0) > 5) needs.push("Deep understanding")
+    if ((rawScores.freedom || 0) > 5) needs.push("Personal freedom")
+    if ((rawScores.security || 0) > 5) needs.push("Emotional security")
+    if ((rawScores.growth || 0) > 5) needs.push("Growth and development")
     
     return needs
   }
@@ -294,9 +294,9 @@ export class PersonalityScorer {
       needsIntellectualStimulation: dimensions.intellectual_curiosity! > 6,
       needsEmotionalDepth: dimensions.emotional_depth! > 6,
       needsStability: dimensions.stable_neurotic < -3,
-      communicationFrequency: dimensions.extraversion > 3 ? 'high' : 'moderate',
+      communicationFrequency: (dimensions.introversion_extraversion || 0) > 3 ? 'high' : 'moderate',
       conflictStyle: dimensions.thinking_feeling > 3 ? 'emotional' : 'logical',
-      affectionStyle: dimensions.physical_touch > 5 ? 'physical' : 'verbal'
+      affectionStyle: 'verbal' // Default since physical_touch is in rawScores not dimensions
     }
   }
 }

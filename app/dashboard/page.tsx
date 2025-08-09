@@ -102,7 +102,14 @@ export default function DashboardPage() {
     guarded_intellectual: Brain,
     warm_empath: Heart,
     deep_thinker: Brain,
-    passionate_creative: Sparkles
+    passionate_creative: Sparkles,
+    secure_connector: Heart,
+    independent_thinker: Brain,
+    emotional_explorer: Heart,
+    analytical_observer: Brain,
+    creative_dreamer: Sparkles,
+    // Default fallback
+    default: Sparkles
   }
 
   return (
@@ -277,7 +284,7 @@ export default function DashboardPage() {
                     <div className="space-y-4">
                       <div className="flex items-center gap-3">
                         {(() => {
-                          const Icon = archetypeIcons[dashboardData.profile.archetype as keyof typeof archetypeIcons]
+                          const Icon = archetypeIcons[dashboardData.profile.archetype as keyof typeof archetypeIcons] || Sparkles
                           return <Icon className="w-8 h-8 text-violet-500" />
                         })()}
                         <div>

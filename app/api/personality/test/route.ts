@@ -35,36 +35,34 @@ export async function POST(req: Request) {
         where: { userId: session.user.id },
         update: {
           answers,
-          completedAt: new Date(),
-          timeSpent,
-          dimensions: result.dimensions,
+          scores: result.dimensions,
           archetype: result.archetype,
-          secondaryArchetype: null,
-          strengths: result.traitProfile.strengths,
-          growthAreas: result.traitProfile.growthAreas,
-          compatibilityFactors: result.traitProfile.compatibilityFactors
+          completedAt: new Date()
         },
         create: {
           userId: session.user.id,
           answers,
-          completedAt: new Date(),
-          timeSpent,
-          dimensions: result.dimensions,
+          scores: result.dimensions,
           archetype: result.archetype,
-          secondaryArchetype: null,
-          strengths: result.traitProfile.strengths,
-          growthAreas: result.traitProfile.growthAreas,
-          compatibilityFactors: result.traitProfile.compatibilityFactors
+          completedAt: new Date()
         }
       })
       
-      // Update user profile with archetype
-      await prisma.profile.update({
+      // Update or create user profile with archetype
+      await prisma.profile.upsert({
         where: { userId: session.user.id },
-        data: {
+        update: {
           archetype: result.archetype,
           personalityScores: result.dimensions,
-          personalityTest: answers
+          personalityTest: answers // Store the test answers
+        },
+        create: {
+          userId: session.user.id,
+          archetype: result.archetype,
+          personalityScores: result.dimensions,
+          personalityTest: answers, // Store the test answers
+          trustLevel: 0,
+          interactionCount: 0
         }
       })
     } else {
