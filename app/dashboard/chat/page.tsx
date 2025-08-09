@@ -19,7 +19,7 @@ import { useOffline } from "@/hooks/use-offline"
 
 export default function ChatPage() {
   const { data: session, status } = useSession()
-  const socket = useSocket()
+  const { socket, isConnected } = useSocket()
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
   
@@ -179,7 +179,7 @@ export default function ChatPage() {
     }
     
     // Send via API if socket not available
-    if (!socket?.connected) {
+    if (!isConnected) {
       try {
         const res = await fetch("/api/chat/message", {
           method: "POST",

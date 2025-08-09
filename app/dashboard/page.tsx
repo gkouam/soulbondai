@@ -258,7 +258,7 @@ export default function DashboardPage() {
                       Continue Conversation
                     </Button>
                   </Link>
-                  <Link href="/personality-test" className="block">
+                  <Link href="/onboarding/personality-test" className="block">
                     <Button variant="outline" className="w-full" aria-label="Retake the personality test">
                       <Brain className="w-4 h-4 mr-2" />
                       Retake Personality Test
