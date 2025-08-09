@@ -2,23 +2,41 @@ const CACHE_NAME = 'soulbondai-v1'
 const STATIC_CACHE_NAME = 'soulbondai-static-v1'
 const DYNAMIC_CACHE_NAME = 'soulbondai-dynamic-v1'
 
-// Assets to cache on install
+// Assets to cache on install - only cache what actually exists
 const STATIC_ASSETS = [
   '/',
-  '/offline',
+  '/offline.html',
   '/manifest.json',
-  '/_next/static/css/app.css',
-  '/fonts/inter-var.woff2',
 ]
 
-// Install event - cache static assets
+// Install event - cache static assets with error handling
 self.addEventListener('install', (event) => {
   console.log('Service Worker: Installing...')
   
   event.waitUntil(
-    caches.open(STATIC_CACHE_NAME).then((cache) => {
+    caches.open(STATIC_CACHE_NAME).then(async (cache) => {
       console.log('Service Worker: Caching static assets')
-      return cache.addAll(STATIC_ASSETS.map(url => new Request(url, { cache: 'no-cache' })))
+      
+      // Try to cache each asset individually to avoid complete failure
+      const cachePromises = STATIC_ASSETS.map(async (url) => {
+        try {
+          const request = new Request(url, { cache: 'no-cache' })
+          const response = await fetch(request)
+          if (response.ok) {
+            await cache.put(request, response)
+            console.log('Cached:', url)
+          } else {
+            console.warn('Failed to cache (not ok):', url, response.status)
+          }
+        } catch (error) {
+          console.warn('Failed to cache (error):', url, error.message)
+        }
+      })
+      
+      await Promise.all(cachePromises)
+      console.log('Service Worker: Static caching complete')
+    }).catch((error) => {
+      console.error('Service Worker: Cache installation failed:', error)
     })
   )
   
@@ -84,12 +102,21 @@ self.addEventListener('fetch', (event) => {
       }).catch(() => {
         // Return offline page for navigation requests
         if (request.mode === 'navigate') {
-          return caches.match('/offline')
+          return caches.match('/offline.html').then((response) => {
+            return response || new Response('Offline', {
+              status: 503,
+              statusText: 'Service Unavailable',
+              headers: new Headers({
+                'Content-Type': 'text/html'
+              })
+            })
+          })
         }
-        // Return placeholder for images
-        if (request.destination === 'image') {
-          return caches.match('/images/offline-placeholder.png')
-        }
+        // Return empty response for other failed requests
+        return new Response('', {
+          status: 503,
+          statusText: 'Service Unavailable'
+        })
       })
     })
   )
