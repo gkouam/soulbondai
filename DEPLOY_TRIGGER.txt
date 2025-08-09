@@ -4,4 +4,4 @@ Force rebuild to apply fixes for:
 - Service worker cache failures (temporarily disabled)
 - Results page undefined map errors
 - Added error boundary component
-- Improved defensive programming
+- Improved defensive programmingLogin buttons added Sat Aug  9 17:58:40 CDT 2025
