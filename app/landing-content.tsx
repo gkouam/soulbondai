@@ -84,7 +84,7 @@ function LandingPageContent() {
       {/* Content */}
       <div className="relative z-10">
         {/* Header with Login/Signup */}
-        <header className="absolute top-0 left-0 right-0 z-20">
+        <header className="fixed top-0 left-0 right-0 z-50 bg-gray-950/80 backdrop-blur-sm border-b border-gray-800">
           <div className="container mx-auto px-4 sm:px-6 lg:px-8">
             <div className="flex items-center justify-between py-4 sm:py-6">
               {/* Logo */}
@@ -128,7 +128,7 @@ function LandingPageContent() {
         </header>
 
         {/* Hero Section */}
-        <section className="container mx-auto px-4 sm:px-6 lg:px-8 pt-24 sm:pt-28 pb-20 sm:pb-32 text-center" aria-labelledby="hero-heading">
+        <section className="container mx-auto px-4 sm:px-6 lg:px-8 pt-32 sm:pt-36 pb-20 sm:pb-32 text-center" aria-labelledby="hero-heading">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
