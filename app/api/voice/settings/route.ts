@@ -23,7 +23,7 @@ export async function GET(req: NextRequest) {
       where: { userId: session.user.id },
       select: {
         voiceEnabled: true,
-        selectedVoice: true,
+        companionVoice: true,  // Changed from selectedVoice to companionVoice
         autoPlayVoice: true,
         voiceSpeed: true,
       }
@@ -31,7 +31,7 @@ export async function GET(req: NextRequest) {
 
     return NextResponse.json({
       voiceEnabled: profile?.voiceEnabled ?? false,
-      selectedVoice: profile?.selectedVoice ?? "alloy",
+      selectedVoice: profile?.companionVoice ?? "alloy",  // Map companionVoice to selectedVoice
       autoPlayVoice: profile?.autoPlayVoice ?? false,
       voiceSpeed: profile?.voiceSpeed ?? 1.0,
     })
@@ -50,18 +50,31 @@ export async function PATCH(req: NextRequest) {
     const body = await req.json()
     const validatedData = voiceSettingsSchema.parse(body)
 
+    // Map selectedVoice to companionVoice for database
+    const dataToUpdate: any = { ...validatedData }
+    if (validatedData.selectedVoice) {
+      dataToUpdate.companionVoice = validatedData.selectedVoice
+      delete dataToUpdate.selectedVoice
+    }
+
     const updatedProfile = await prisma.profile.update({
       where: { userId: session.user.id },
-      data: validatedData,
+      data: dataToUpdate,
       select: {
         voiceEnabled: true,
-        selectedVoice: true,
+        companionVoice: true,  // Changed from selectedVoice to companionVoice
         autoPlayVoice: true,
         voiceSpeed: true,
       }
     })
 
-    return NextResponse.json(updatedProfile)
+    // Map back for response
+    return NextResponse.json({
+      voiceEnabled: updatedProfile.voiceEnabled,
+      selectedVoice: updatedProfile.companionVoice,
+      autoPlayVoice: updatedProfile.autoPlayVoice,
+      voiceSpeed: updatedProfile.voiceSpeed,
+    })
   } catch (error) {
     if (error instanceof z.ZodError) {
       return handleApiError(new AppError("Invalid voice settings", 400))

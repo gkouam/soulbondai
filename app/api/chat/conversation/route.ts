@@ -15,7 +15,7 @@ export async function GET(req: Request) {
     let conversation = await prisma.conversation.findFirst({
       where: {
         userId: session.user.id,
-        endedAt: null
+        archived: false  // Changed from endedAt to archived (field that exists)
       },
       include: {
         messages: {
