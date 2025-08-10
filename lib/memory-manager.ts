@@ -160,18 +160,17 @@ export class MemoryManager {
       data: {
         userId: context.userId,
         type: significance.type,
-        category: significance.category,
         content: fullContent,
-        context: {
+        context: JSON.stringify({
           sentiment: context.sentiment,
           significance: significance.reasons,
           messageCount: context.conversationHistory.length,
-          trustLevel: context.userProfile.trustLevel
-        },
+          trustLevel: context.userProfile.trustLevel,
+          category: significance.category,
+          keywords: significance.keywords
+        }),
         importance: significance.score,
-        embedding,
-        keywords: significance.keywords,
-        expiresAt: significance.expiresAt
+        embedding
       }
     })
     
@@ -184,7 +183,7 @@ export class MemoryManager {
         {
           memoryId: memory.id,
           type: memory.type,
-          category: memory.category,
+          type: memory.type,
           importance: memory.importance,
           createdAt: memory.createdAt.toISOString()
         }
@@ -194,13 +193,22 @@ export class MemoryManager {
     return memory
   }
   
-  // Clean up expired memories
-  async cleanupExpiredMemories(userId: string): Promise<number> {
+  // Clean up old memories based on accessCount and lastAccessed
+  async cleanupOldMemories(userId: string): Promise<number> {
+    // Delete memories that haven't been accessed in 90 days and have low importance
+    const ninetyDaysAgo = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000)
+    
     const result = await prisma.memory.deleteMany({
       where: {
         userId,
-        expiresAt: {
-          lt: new Date()
+        lastAccessed: {
+          lt: ninetyDaysAgo
+        },
+        importance: {
+          lt: 4
+        },
+        accessCount: {
+          lt: 3
         }
       }
     })
@@ -221,15 +229,24 @@ export class MemoryManager {
     const recentMemories = await prisma.memory.findMany({
       where: {
         userId,
-        importance: { gte: 6 },
-        OR: [
-          { expiresAt: null },
-          { expiresAt: { gt: new Date() } }
-        ]
+        importance: { gte: 6 }
       },
       orderBy: { createdAt: "desc" },
       take: limit
     })
+    
+    // Update access count and lastAccessed for retrieved memories
+    if (recentMemories.length > 0) {
+      await prisma.memory.updateMany({
+        where: {
+          id: { in: recentMemories.map(m => m.id) }
+        },
+        data: {
+          accessCount: { increment: 1 },
+          lastAccessed: new Date()
+        }
+      })
+    }
     
     // Apply decay factor based on age
     const now = Date.now()
@@ -267,7 +284,7 @@ export class MemoryManager {
       where: { userId },
       select: {
         type: true,
-        category: true,
+        type: true,
         importance: true,
         createdAt: true
       }
@@ -276,7 +293,7 @@ export class MemoryManager {
     const stats = {
       total: memories.length,
       byType: {} as Record<string, number>,
-      byCategory: {} as Record<string, number>,
+      byType: {} as Record<string, number>,
       oldestMemory: memories.length > 0 
         ? memories.reduce((oldest, mem) => 
             mem.createdAt < oldest ? mem.createdAt : oldest, 
@@ -288,10 +305,9 @@ export class MemoryManager {
         : 0
     }
     
-    // Count by type and category
+    // Count by type
     memories.forEach(memory => {
       stats.byType[memory.type] = (stats.byType[memory.type] || 0) + 1
-      stats.byCategory[memory.category] = (stats.byCategory[memory.category] || 0) + 1
     })
     
     return stats
