@@ -93,7 +93,7 @@ export async function POST(req: Request) {
     let conversation = await prisma.conversation.findFirst({
       where: {
         userId: session.user.id,
-        endedAt: null
+        archived: false
       }
     })
     

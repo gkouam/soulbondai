@@ -219,7 +219,7 @@ io.on("connection", async (socket) => {
           userId
         },
         data: {
-          endedAt: new Date()
+          archived: true
         }
       })
 
