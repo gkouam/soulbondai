@@ -224,6 +224,27 @@ export async function POST(req: Request) {
     })
     
   } catch (error) {
+    console.error("Message API Error:", {
+      error,
+      message: error instanceof Error ? error.message : "Unknown error",
+      stack: error instanceof Error ? error.stack : undefined
+    })
+    
+    // Check for specific OpenAI errors
+    if (error instanceof Error && error.message.includes("API key")) {
+      return NextResponse.json(
+        { error: "AI service not configured. Please contact support." },
+        { status: 503 }
+      )
+    }
+    
+    if (error instanceof Error && error.message.includes("rate limit")) {
+      return NextResponse.json(
+        { error: "AI service temporarily unavailable. Please try again in a moment." },
+        { status: 429 }
+      )
+    }
+    
     return handleApiError(error)
   }
 }

@@ -195,11 +195,22 @@ export default function ChatPage() {
       
       if (res.ok) {
         const data = await res.json()
-        // Don't add message here - Pusher will deliver it
-        // Just handle other updates
-          
-          // Handle trust updates and milestones
-          if (data.trustUpdate) {
+        
+        // Add the AI response if Pusher isn't working
+        // This ensures the response is shown even without real-time updates
+        if (data.response) {
+          setMessages(prev => {
+            // Check if message already exists (from Pusher)
+            const exists = prev.some(m => m.id === data.response.id)
+            if (!exists) {
+              return [...prev, data.response]
+            }
+            return prev
+          })
+        }
+        
+        // Handle trust updates and milestones
+        if (data.trustUpdate) {
             if (data.trustUpdate.milestonesAchieved.length > 0) {
               // Celebrate the first milestone
               const milestone = data.trustUpdate.milestonesAchieved[0]
@@ -223,10 +234,12 @@ export default function ChatPage() {
           setUpgradePrompt(data.upgradePrompt)
         }
       } else {
+        const errorData = await res.json().catch(() => ({ error: "Failed to send message" }))
+        console.error("Chat error:", errorData)
         toast({
           type: "error",
           title: "Failed to send message",
-          description: "Please try again"
+          description: errorData.error || "Please try again"
         })
       }
     } catch (error) {
