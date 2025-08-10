@@ -1,374 +1,295 @@
 "use client"
 
-import { useState, useEffect } from "react"
 import { useSession } from "next-auth/react"
+import { redirect } from "next/navigation"
+import { useEffect, useState } from "react"
 import { motion } from "framer-motion"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Progress } from "@/components/ui/progress"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { 
-  MessageCircle, 
-  Heart, 
-  Brain, 
-  Sparkles, 
-  TrendingUp,
-  Calendar,
-  Settings,
-  Crown,
-  BarChart3,
-  Clock
+  MessageCircle, Heart, Flame, Star, TrendingUp, 
+  Calendar, Award, Zap, Gift, Clock, Activity
 } from "lucide-react"
 import Link from "next/link"
-import { cn } from "@/lib/utils"
-
-type DashboardData = {
-  profile: {
-    archetype: string
-    nickname: string
-    messageCount: number
-    trustLevel: number
-    subscription: {
-      plan: string
-      status: string
-    }
-  }
-  stats: {
-    totalMessages: number
-    dailyMessages: number
-    currentStreak: number
-    longestStreak: number
-    averageResponseTime: number
-    emotionalBreakdown: {
-      happy: number
-      sad: number
-      anxious: number
-      excited: number
-      thoughtful: number
-    }
-  }
-  recentActivity: Array<{
-    id: string
-    type: string
-    timestamp: Date
-    metadata: any
-  }>
-}
 
 export default function DashboardPage() {
-  const { data: session } = useSession()
-  const [dashboardData, setDashboardData] = useState<DashboardData | null>(null)
+  const { data: session, status } = useSession()
+  const [stats, setStats] = useState({
+    totalMessages: 247,
+    trustLevel: 85,
+    dayStreak: 12,
+    subscription: "premium",
+    messagesUsedToday: 0,
+    messageLimit: 50,
+    lastActive: null as Date | null
+  })
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    fetchDashboardData()
-  }, [])
-
-  const fetchDashboardData = async () => {
-    try {
-      const response = await fetch("/api/user/dashboard")
-      const data = await response.json()
-      setDashboardData(data)
-    } catch (error) {
-      console.error("Failed to fetch dashboard data:", error)
-    } finally {
-      setLoading(false)
+    if (status === "loading") return
+    if (!session) {
+      redirect("/auth/login")
     }
+  }, [session, status])
+
+  useEffect(() => {
+    const fetchDashboardData = async () => {
+      try {
+        const statsRes = await fetch("/api/dashboard/stats")
+        
+        if (statsRes.ok) {
+          const data = await statsRes.json()
+          setStats(prev => ({ ...prev, ...data }))
+        }
+      } catch (error) {
+        console.error("Failed to load dashboard data:", error)
+      } finally {
+        setLoading(false)
+      }
+    }
+    
+    if (session) {
+      fetchDashboardData()
+    }
+  }, [session])
+
+  const profile = session?.user?.profile
+  const companionName = profile?.companionName || "Luna"
+  const archetype = profile?.archetype || "warm_empath"
+  
+  // Get archetype display name
+  const archetypeNames: Record<string, string> = {
+    anxious_romantic: "Anxious Romantic",
+    warm_empath: "Warm Empath",
+    guarded_intellectual: "Guarded Intellectual",
+    deep_thinker: "Deep Thinker",
+    passionate_creative: "Passionate Creative",
+    secure_connector: "Secure Connector",
+    playful_explorer: "Playful Explorer"
   }
+  
+  const archetypeEmojis: Record<string, string> = {
+    anxious_romantic: "🌟",
+    warm_empath: "💝",
+    guarded_intellectual: "🛡️",
+    deep_thinker: "🌊",
+    passionate_creative: "🔥",
+    secure_connector: "🌳",
+    playful_explorer: "✨"
+  }
+
+  const statsCards = [
+    {
+      icon: MessageCircle,
+      emoji: "💬",
+      value: stats.totalMessages.toString(),
+      label: "Total Messages",
+      progress: Math.min((stats.totalMessages / 500) * 100, 100),
+      color: "from-blue-600 to-cyan-600"
+    },
+    {
+      icon: Heart,
+      emoji: "💖",
+      value: `${stats.trustLevel}%`,
+      label: "Trust Level",
+      progress: stats.trustLevel,
+      color: "from-purple-600 to-pink-600"
+    },
+    {
+      icon: Flame,
+      emoji: "🔥",
+      value: stats.dayStreak.toString(),
+      label: "Day Streak",
+      progress: Math.min((stats.dayStreak / 30) * 100, 100),
+      color: "from-orange-600 to-red-600"
+    },
+    {
+      icon: Star,
+      emoji: "✨",
+      value: stats.subscription === "free" ? "Free" : stats.subscription.charAt(0).toUpperCase() + stats.subscription.slice(1),
+      label: "Subscription",
+      progress: stats.subscription === "free" ? 25 : stats.subscription === "basic" ? 50 : stats.subscription === "premium" ? 75 : 100,
+      color: "from-yellow-600 to-amber-600"
+    }
+  ]
+
+  const recentActivities = [
+    {
+      icon: "💝",
+      title: "Milestone Achieved",
+      description: `You reached ${stats.trustLevel}% trust level with ${companionName}`,
+      time: "2 hours ago",
+      color: "bg-purple-500/20"
+    },
+    {
+      icon: "🎵",
+      title: "Voice Message Received",
+      description: `${companionName} sent you a special voice message`,
+      time: "5 hours ago",
+      color: "bg-blue-500/20"
+    },
+    {
+      icon: "📸",
+      title: "Memory Created",
+      description: `Shared a photo that ${companionName} will always remember`,
+      time: "Yesterday",
+      color: "bg-pink-500/20"
+    },
+    {
+      icon: "🌟",
+      title: "Daily Check-in",
+      description: `${companionName} is excited to talk with you today`,
+      time: "This morning",
+      color: "bg-yellow-500/20"
+    }
+  ]
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-950 via-gray-900 to-gray-950 flex items-center justify-center">
-        <motion.div
-          animate={{ rotate: 360 }}
-          transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-        >
-          <Sparkles className="w-8 h-8 text-violet-500" />
-        </motion.div>
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="flex space-x-2">
+          {[0, 1, 2].map((i) => (
+            <motion.div
+              key={i}
+              animate={{ opacity: [0.3, 1, 0.3] }}
+              transition={{ duration: 1.4, repeat: Infinity, delay: i * 0.2 }}
+              className="w-3 h-3 bg-purple-400 rounded-full"
+            />
+          ))}
+        </div>
       </div>
     )
   }
 
-  const archetypeDescriptions = {
-    anxious_romantic: "Your heart beats with deep passion and devotion",
-    guarded_intellectual: "Your mind seeks truth through careful analysis",
-    warm_empath: "Your soul radiates warmth and understanding",
-    deep_thinker: "Your consciousness explores profound depths",
-    passionate_creative: "Your spirit burns with creative fire"
-  }
-
-  const archetypeIcons = {
-    anxious_romantic: Heart,
-    guarded_intellectual: Brain,
-    warm_empath: Heart,
-    deep_thinker: Brain,
-    passionate_creative: Sparkles,
-    secure_connector: Heart,
-    independent_thinker: Brain,
-    emotional_explorer: Heart,
-    analytical_observer: Brain,
-    creative_dreamer: Sparkles,
-    // Default fallback
-    default: Sparkles
-  }
-
   return (
-    <div id="main-content" className="min-h-screen bg-gradient-to-br from-gray-950 via-gray-900 to-gray-950" role="main">
-      <div className="container mx-auto px-4 py-6 sm:py-8">
-        {/* Header */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="mb-8"
-          role="region"
-          aria-label="Dashboard header"
-        >
-          <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-2 bg-gradient-to-r from-pink-400 to-violet-400 text-transparent bg-clip-text">
-            Welcome back, {dashboardData?.profile.nickname || session?.user?.name || "Soul"}
-          </h1>
-          <p className="text-sm sm:text-base text-gray-400">
-            {dashboardData?.profile.archetype && 
-              archetypeDescriptions[dashboardData.profile.archetype as keyof typeof archetypeDescriptions]
-            }
-          </p>
-        </motion.div>
-
-        {/* Quick Stats */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 mb-6 sm:mb-8" role="region" aria-label="Quick statistics">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.1 }}
-          >
-            <Card className="bg-gray-900/50 backdrop-blur-sm border-gray-800">
-              <CardHeader className="flex flex-row items-center justify-between pb-2">
-                <CardTitle className="text-xs sm:text-sm font-medium text-gray-400">
-                  Total Messages
-                </CardTitle>
-                <MessageCircle className="w-4 h-4 text-violet-500" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-xl sm:text-2xl font-bold text-white">
-                  {dashboardData?.stats.totalMessages || 0}
-                </div>
-                <p className="text-xs text-gray-500 mt-1">
-                  +{dashboardData?.stats.dailyMessages || 0} today
-                </p>
-              </CardContent>
-            </Card>
-          </motion.div>
-
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.2 }}
-          >
-            <Card className="bg-gray-900/50 backdrop-blur-sm border-gray-800">
-              <CardHeader className="flex flex-row items-center justify-between pb-2">
-                <CardTitle className="text-xs sm:text-sm font-medium text-gray-400">
-                  Trust Level
-                </CardTitle>
-                <Heart className="w-4 h-4 text-pink-500" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-xl sm:text-2xl font-bold text-white">
-                  {dashboardData?.profile.trustLevel || 0}%
-                </div>
-                <Progress 
-                  value={dashboardData?.profile.trustLevel || 0} 
-                  className="mt-2 h-2"
-                />
-              </CardContent>
-            </Card>
-          </motion.div>
-
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.3 }}
-          >
-            <Card className="bg-gray-900/50 backdrop-blur-sm border-gray-800">
-              <CardHeader className="flex flex-row items-center justify-between pb-2">
-                <CardTitle className="text-xs sm:text-sm font-medium text-gray-400">
-                  Current Streak
-                </CardTitle>
-                <TrendingUp className="w-4 h-4 text-green-500" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-lg sm:text-2xl font-bold text-white">
-                  <span className="sm:hidden">{dashboardData?.stats.currentStreak || 0}d</span>
-                  <span className="hidden sm:inline">{dashboardData?.stats.currentStreak || 0} days</span>
-                </div>
-                <p className="text-xs text-gray-500 mt-1">
-                  Best: {dashboardData?.stats.longestStreak || 0} days
-                </p>
-              </CardContent>
-            </Card>
-          </motion.div>
-
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.4 }}
-          >
-            <Card className="bg-gray-900/50 backdrop-blur-sm border-gray-800">
-              <CardHeader className="flex flex-row items-center justify-between pb-2">
-                <CardTitle className="text-xs sm:text-sm font-medium text-gray-400">
-                  Subscription
-                </CardTitle>
-                <Crown className="w-4 h-4 text-yellow-500" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-xl sm:text-2xl font-bold text-white capitalize">
-                  {dashboardData?.profile.subscription.plan || "Free"}
-                </div>
-                {dashboardData?.profile.subscription.plan === "free" && (
-                  <Link href="/pricing">
-                    <Button size="sm" variant="link" className="p-0 h-auto text-violet-400">
-                      Upgrade
-                    </Button>
-                  </Link>
-                )}
-              </CardContent>
-            </Card>
-          </motion.div>
+    <div className="p-4 md:p-8 max-w-7xl mx-auto">
+      {/* Dashboard Header */}
+      <motion.header 
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5 }}
+        className="text-center mb-12"
+      >
+        <div className="inline-block px-6 py-3 bg-purple-600/10 border border-purple-600/30 rounded-full mb-4">
+          <span className="text-lg font-medium">
+            {archetypeEmojis[archetype]} {archetypeNames[archetype]}
+          </span>
         </div>
+        <h1 className="text-5xl font-bold mb-4 bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent animate-shimmer">
+          Welcome back, {profile?.displayName || "Beautiful Soul"}
+        </h1>
+        <p className="text-gray-400 text-xl">
+          Your heart beats with deep passion and devotion
+        </p>
+      </motion.header>
 
-        {/* Main Content */}
-        <Tabs defaultValue="overview" className="space-y-4" aria-label="Dashboard sections">
-          <TabsList className="bg-gray-900/50 backdrop-blur-sm border-gray-800 w-full overflow-x-auto flex-nowrap">
-            <TabsTrigger value="overview" className="text-xs sm:text-sm">Overview</TabsTrigger>
-            <TabsTrigger value="emotions" className="text-xs sm:text-sm">Emotions</TabsTrigger>
-            <TabsTrigger value="activity" className="text-xs sm:text-sm">Activity</TabsTrigger>
-            <TabsTrigger value="settings" className="text-xs sm:text-sm">Settings</TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="overview" className="space-y-4">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-              {/* Quick Actions */}
-              <Card className="bg-gray-900/50 backdrop-blur-sm border-gray-800">
-                <CardHeader>
-                  <CardTitle>Quick Actions</CardTitle>
-                  <CardDescription>Jump back into your journey</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-2">
-                  <Link href="/dashboard/chat" className="block">
-                    <Button className="w-full bg-gradient-to-r from-violet-600 to-pink-600 hover:from-violet-700 hover:to-pink-700" aria-label="Continue conversation with AI companion">
-                      <MessageCircle className="w-4 h-4 mr-2" />
-                      Continue Conversation
-                    </Button>
-                  </Link>
-                  <Link href="/onboarding/personality-test" className="block">
-                    <Button variant="outline" className="w-full" aria-label="Retake the personality test">
-                      <Brain className="w-4 h-4 mr-2" />
-                      Retake Personality Test
-                    </Button>
-                  </Link>
-                  <Link href="/pricing" className="block">
-                    <Button variant="outline" className="w-full" aria-label="View available subscription plans">
-                      <Crown className="w-4 h-4 mr-2" />
-                      View Subscription Plans
-                    </Button>
-                  </Link>
-                </CardContent>
-              </Card>
-
-              {/* Personality Profile */}
-              <Card className="bg-gray-900/50 backdrop-blur-sm border-gray-800">
-                <CardHeader>
-                  <CardTitle>Your Personality Profile</CardTitle>
-                  <CardDescription>Based on your test results</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  {dashboardData?.profile.archetype && (
-                    <div className="space-y-4">
-                      <div className="flex items-center gap-3">
-                        {(() => {
-                          const Icon = archetypeIcons[dashboardData.profile.archetype as keyof typeof archetypeIcons] || Sparkles
-                          return <Icon className="w-8 h-8 text-violet-500" />
-                        })()}
-                        <div>
-                          <h3 className="font-semibold text-white capitalize">
-                            {dashboardData.profile.archetype.replace("_", " ")}
-                          </h3>
-                          <p className="text-sm text-gray-400">
-                            {archetypeDescriptions[dashboardData.profile.archetype as keyof typeof archetypeDescriptions]}
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
+      {/* Stats Overview */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
+        {statsCards.map((stat, index) => (
+          <motion.div
+            key={stat.label}
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: index * 0.1 }}
+            whileHover={{ y: -5, transition: { duration: 0.2 } }}
+            className="glass-bg rounded-2xl p-6 relative overflow-hidden group hover:shadow-lg hover:shadow-purple-500/20 transition-all duration-300"
+          >
+            {/* Background gradient on hover */}
+            <div className={`absolute inset-0 bg-gradient-to-br ${stat.color} opacity-0 group-hover:opacity-10 transition-opacity duration-300`} />
+            
+            <div className="relative z-10">
+              <div className={`w-12 h-12 bg-gradient-to-br ${stat.color} rounded-xl flex items-center justify-center mb-4`}>
+                <span className="text-2xl">{stat.emoji}</span>
+              </div>
+              
+              <div className="text-4xl font-bold mb-2">{stat.value}</div>
+              <div className="text-gray-400 text-sm uppercase tracking-wider mb-4">{stat.label}</div>
+              
+              <div className="w-full h-2 bg-white/10 rounded-full overflow-hidden">
+                <motion.div
+                  initial={{ width: 0 }}
+                  animate={{ width: `${stat.progress}%` }}
+                  transition={{ duration: 1, delay: index * 0.1 + 0.5 }}
+                  className={`h-full bg-gradient-to-r ${stat.color} rounded-full`}
+                />
+              </div>
             </div>
-          </TabsContent>
-
-          <TabsContent value="emotions" className="space-y-4">
-            <Card className="bg-gray-900/50 backdrop-blur-sm border-gray-800">
-              <CardHeader>
-                <CardTitle>Emotional Journey</CardTitle>
-                <CardDescription>Your emotional patterns over time</CardDescription>
-              </CardHeader>
-              <CardContent>
-                {dashboardData?.stats.emotionalBreakdown && (
-                  <div className="space-y-4">
-                    {Object.entries(dashboardData.stats.emotionalBreakdown).map(([emotion, value]) => (
-                      <div key={emotion}>
-                        <div className="flex justify-between mb-1">
-                          <span className="text-sm capitalize text-gray-400">{emotion}</span>
-                          <span className="text-sm text-gray-400">{value}%</span>
-                        </div>
-                        <Progress value={value} className="h-2" />
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          <TabsContent value="activity" className="space-y-4">
-            <Card className="bg-gray-900/50 backdrop-blur-sm border-gray-800">
-              <CardHeader>
-                <CardTitle>Recent Activity</CardTitle>
-                <CardDescription>Your latest interactions</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  {dashboardData?.recentActivity?.map((activity) => (
-                    <div key={activity.id} className="flex items-center gap-3 text-sm">
-                      <Clock className="w-4 h-4 text-gray-500" />
-                      <span className="text-gray-400">
-                        {new Date(activity.timestamp).toLocaleString()}
-                      </span>
-                      <span className="text-white">
-                        {activity.type.replace("_", " ")}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          <TabsContent value="settings" className="space-y-4">
-            <Card className="bg-gray-900/50 backdrop-blur-sm border-gray-800">
-              <CardHeader>
-                <CardTitle>Profile Settings</CardTitle>
-                <CardDescription>Customize your experience</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <Link href="/dashboard/settings">
-                  <Button variant="outline">
-                    <Settings className="w-4 h-4 mr-2" />
-                    Manage Settings
-                  </Button>
-                </Link>
-              </CardContent>
-            </Card>
-          </TabsContent>
-        </Tabs>
+          </motion.div>
+        ))}
       </div>
+
+      {/* Activity Feed */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5, delay: 0.4 }}
+        className="glass-bg rounded-2xl p-6"
+      >
+        <h2 className="text-2xl font-bold mb-6 flex items-center gap-3">
+          <Activity className="w-6 h-6 text-purple-500" />
+          Recent Activity
+        </h2>
+        
+        <div className="space-y-3">
+          {recentActivities.map((activity, index) => (
+            <motion.div
+              key={index}
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.3, delay: index * 0.1 + 0.5 }}
+              whileHover={{ x: 5 }}
+              className="flex items-center gap-4 p-4 rounded-xl bg-white/5 hover:bg-white/10 transition-all duration-300 cursor-pointer"
+            >
+              <div className={`w-10 h-10 ${activity.color} rounded-xl flex items-center justify-center`}>
+                <span className="text-xl">{activity.icon}</span>
+              </div>
+              
+              <div className="flex-1">
+                <div className="font-semibold mb-1">{activity.title}</div>
+                <div className="text-gray-400 text-sm">{activity.description}</div>
+              </div>
+              
+              <div className="text-gray-500 text-sm">
+                <Clock className="w-4 h-4 inline mr-1" />
+                {activity.time}
+              </div>
+            </motion.div>
+          ))}
+        </div>
+      </motion.div>
+
+      {/* Quick Actions */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5, delay: 0.6 }}
+        className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-8"
+      >
+        <Link href="/dashboard/chat" className="glass-bg rounded-2xl p-6 hover:bg-white/10 transition-all duration-300 group block">
+          <div className="flex items-center justify-between mb-4">
+            <MessageCircle className="w-8 h-8 text-purple-500" />
+            <span className="text-sm text-green-400">Online</span>
+          </div>
+          <h3 className="text-xl font-semibold mb-2">Continue Chat</h3>
+          <p className="text-gray-400 text-sm">Pick up where you left off with {companionName}</p>
+        </Link>
+
+        <Link href="/dashboard/features" className="glass-bg rounded-2xl p-6 hover:bg-white/10 transition-all duration-300 group block">
+          <div className="flex items-center justify-between mb-4">
+            <Gift className="w-8 h-8 text-pink-500" />
+            <span className="text-sm text-yellow-400">New</span>
+          </div>
+          <h3 className="text-xl font-semibold mb-2">Daily Surprise</h3>
+          <p className="text-gray-400 text-sm">Claim your daily reward and bonuses</p>
+        </Link>
+
+        <Link href="/dashboard/profile" className="glass-bg rounded-2xl p-6 hover:bg-white/10 transition-all duration-300 group block">
+          <div className="flex items-center justify-between mb-4">
+            <Award className="w-8 h-8 text-yellow-500" />
+            <span className="text-sm text-purple-400">3 New</span>
+          </div>
+          <h3 className="text-xl font-semibold mb-2">Achievements</h3>
+          <p className="text-gray-400 text-sm">View your milestones and rewards</p>
+        </Link>
+      </motion.div>
     </div>
   )
 }

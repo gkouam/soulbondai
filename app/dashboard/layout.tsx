@@ -3,24 +3,20 @@
 import { useState } from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { motion } from "framer-motion"
+import { motion, AnimatePresence } from "framer-motion"
 import { 
-  MessageSquare, Settings, CreditCard, Users, 
-  Shield, Menu, X, Home, Sparkles, BarChart3, LogOut, User
+  MessageSquare, Settings, CreditCard, User, LayoutDashboard,
+  Sparkles, LogOut, Menu, X
 } from "lucide-react"
-import { cn } from "@/lib/utils"
-import { Button } from "@/components/ui/button"
 import { signOut, useSession } from "next-auth/react"
-import { AITechHeartLogo } from "@/components/ai-tech-heart-logo"
 
 const navigation = [
-  { name: "Dashboard", href: "/dashboard", icon: Home },
+  { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
   { name: "Chat", href: "/dashboard/chat", icon: MessageSquare },
   { name: "Features", href: "/dashboard/features", icon: Sparkles },
   { name: "Settings", href: "/dashboard/settings", icon: Settings },
-  { name: "Privacy", href: "/dashboard/privacy", icon: Shield },
-  { name: "Billing", href: "/dashboard/billing", icon: CreditCard },
-  { name: "Analytics", href: "/dashboard/analytics", icon: BarChart3 }
+  { name: "Profile", href: "/dashboard/profile", icon: User },
+  { name: "Subscription", href: "/dashboard/subscription", icon: CreditCard }
 ]
 
 export default function DashboardLayout({
@@ -33,164 +29,147 @@ export default function DashboardLayout({
   const { data: session } = useSession()
   
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Mobile menu button */}
-      <div className="fixed top-4 left-4 z-50 lg:hidden">
-        <Button
-          variant="outline"
-          size="icon"
-          onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-          className="bg-white shadow-md"
-        >
-          {mobileMenuOpen ? (
-            <X className="h-5 w-5" />
-          ) : (
-            <Menu className="h-5 w-5" />
-          )}
-        </Button>
-      </div>
-      
-      {/* Sidebar */}
-      <aside className={cn(
-        "fixed inset-y-0 left-0 z-40 w-64 bg-white shadow-lg transform transition-transform duration-200 ease-in-out lg:translate-x-0",
-        mobileMenuOpen ? "translate-x-0" : "-translate-x-full"
-      )}>
-        <div className="h-full px-4 py-6 overflow-y-auto">
-          {/* Logo */}
-          <div className="flex items-center mb-8">
-            <Link href="/dashboard" className="flex items-center space-x-2 group">
-              <AITechHeartLogo size={40} className="transition-transform group-hover:scale-110" />
-              <span className="text-xl font-bold text-gray-800">SoulBond AI</span>
-            </Link>
-          </div>
-          
-          {/* Navigation */}
-          <nav className="space-y-1">
-            {navigation.map((item) => {
-              const isActive = pathname === item.href
-              return (
-                <Link
-                  key={item.name}
-                  href={item.href}
-                  onClick={() => setMobileMenuOpen(false)}
-                  className={cn(
-                    "flex items-center px-4 py-3 text-sm font-medium rounded-lg transition-colors",
-                    isActive
-                      ? "bg-purple-50 text-purple-700"
-                      : "text-gray-700 hover:bg-gray-100"
-                  )}
-                >
-                  <item.icon className={cn(
-                    "mr-3 h-5 w-5",
-                    isActive ? "text-purple-700" : "text-gray-400"
-                  )} />
-                  {item.name}
-                  {isActive && (
-                    <motion.div
-                      layoutId="activeTab"
-                      className="absolute left-0 w-1 h-8 bg-purple-600 rounded-r-full"
-                      initial={false}
-                    />
-                  )}
-                </Link>
-              )
-            })}
-          </nav>
-          
-          {/* User info and logout */}
-          <div className="absolute bottom-6 left-4 right-4 space-y-3">
-            {/* User info */}
-            {session?.user && (
-              <div className="flex items-center px-4 py-3 bg-gray-50 rounded-lg">
-                <User className="w-5 h-5 mr-3 text-gray-400" />
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-gray-900 truncate">
-                    {session.user.name || session.user.email}
-                  </p>
-                  <p className="text-xs text-gray-500 truncate">
-                    {session.user.email}
-                  </p>
-                </div>
-              </div>
-            )}
-            
-            {/* Upgrade button */}
-            <Link
-              href="/pricing"
-              className="flex items-center justify-center px-4 py-3 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-lg hover:shadow-lg transition-shadow"
-            >
-              <Crown className="w-5 h-5 mr-2" />
-              Upgrade Plan
-            </Link>
-            
-            {/* Logout button */}
-            <button
-              onClick={() => signOut({ callbackUrl: '/' })}
-              className="flex items-center justify-center w-full px-4 py-3 text-red-600 bg-red-50 rounded-lg hover:bg-red-100 transition-colors"
-            >
-              <LogOut className="w-5 h-5 mr-2" />
-              Sign Out
-            </button>
+    <div className="min-h-screen bg-[#0a0a0f] text-white overflow-x-hidden">
+      {/* Animated Background */}
+      <div className="fixed inset-0 z-0">
+        <div className="absolute inset-0 bg-gradient-to-b from-[#0a0a0f] to-[#1a1a2e]" />
+        <div className="absolute inset-0 opacity-30">
+          <div className="absolute top-[-25%] left-[-25%] w-[150%] h-[150%] animate-float">
+            <div className="absolute top-[20%] left-[20%] w-[40%] h-[40%] bg-purple-600/30 rounded-full blur-[100px]" />
+            <div className="absolute bottom-[20%] right-[20%] w-[35%] h-[35%] bg-pink-600/20 rounded-full blur-[100px]" />
+            <div className="absolute top-[60%] left-[60%] w-[30%] h-[30%] bg-purple-600/20 rounded-full blur-[100px]" />
           </div>
         </div>
-      </aside>
-      
-      {/* Main content */}
-      <main className={cn(
-        "transition-all duration-200",
-        "lg:pl-64"
-      )}>
-        {/* Top bar with user menu - visible on larger screens */}
-        <div className="sticky top-0 z-30 bg-white border-b border-gray-200 px-4 py-3 hidden lg:flex lg:items-center lg:justify-end">
-          <div className="flex items-center space-x-4">
-            {session?.user && (
-              <>
-                <span className="text-sm text-gray-700">
-                  {session.user.email}
-                </span>
+      </div>
+
+      {/* Page Navigation - Desktop */}
+      <nav className="fixed top-4 right-4 z-50 bg-[#0f0f19]/95 backdrop-blur-xl border border-white/10 rounded-2xl p-2 hidden md:block">
+        <div className="flex gap-2">
+          {navigation.map((item) => {
+            const Icon = item.icon
+            const isActive = pathname === item.href
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                className={`
+                  px-4 py-2 rounded-xl font-medium transition-all duration-300
+                  flex items-center gap-2
+                  ${isActive 
+                    ? 'bg-gradient-to-r from-purple-600 to-pink-600 text-white shadow-lg shadow-purple-500/25' 
+                    : 'bg-white/5 hover:bg-white/10 text-gray-400 hover:text-white border border-white/10'
+                  }
+                `}
+              >
+                <Icon className="w-4 h-4" />
+                <span>{item.name}</span>
+              </Link>
+            )
+          })}
+          <button
+            onClick={() => signOut({ callbackUrl: '/' })}
+            className="px-4 py-2 rounded-xl font-medium transition-all duration-300 bg-white/5 hover:bg-red-500/20 text-gray-400 hover:text-red-400 border border-white/10 flex items-center gap-2"
+          >
+            <LogOut className="w-4 h-4" />
+            <span>Logout</span>
+          </button>
+        </div>
+      </nav>
+
+      {/* Mobile Menu Button */}
+      <button
+        onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+        className="fixed top-4 right-4 z-50 p-3 rounded-xl bg-[#0f0f19]/95 backdrop-blur-xl border border-white/10 md:hidden"
+      >
+        {mobileMenuOpen ? (
+          <X className="w-6 h-6" />
+        ) : (
+          <Menu className="w-6 h-6" />
+        )}
+      </button>
+
+      {/* Mobile Menu */}
+      <AnimatePresence>
+        {mobileMenuOpen && (
+          <motion.div
+            initial={{ opacity: 0, x: 300 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: 300 }}
+            className="fixed inset-y-0 right-0 z-40 w-80 bg-[#0f0f19]/95 backdrop-blur-xl border-l border-white/10 p-6 md:hidden"
+          >
+            <div className="flex flex-col h-full">
+              <div className="flex items-center justify-between mb-8">
+                <h2 className="text-xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
+                  SoulBond AI
+                </h2>
+              </div>
+              
+              <nav className="flex-1 space-y-2">
+                {navigation.map((item) => {
+                  const Icon = item.icon
+                  const isActive = pathname === item.href
+                  return (
+                    <Link
+                      key={item.href}
+                      href={item.href}
+                      onClick={() => setMobileMenuOpen(false)}
+                      className={`
+                        flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-300
+                        ${isActive 
+                          ? 'bg-gradient-to-r from-purple-600 to-pink-600 text-white' 
+                          : 'bg-white/5 text-gray-400 hover:bg-white/10 hover:text-white'
+                        }
+                      `}
+                    >
+                      <Icon className="w-5 h-5" />
+                      <span>{item.name}</span>
+                    </Link>
+                  )
+                })}
+              </nav>
+              
+              <div className="pt-6 border-t border-white/10">
+                {session?.user && (
+                  <div className="mb-4 p-3 bg-white/5 rounded-xl">
+                    <p className="text-sm text-gray-400">Signed in as</p>
+                    <p className="text-white font-medium truncate">{session.user.email}</p>
+                  </div>
+                )}
                 <button
                   onClick={() => signOut({ callbackUrl: '/' })}
-                  className="inline-flex items-center px-3 py-1.5 text-sm text-red-600 hover:text-red-700 hover:bg-red-50 rounded-md transition-colors"
+                  className="w-full px-4 py-3 bg-red-500/20 text-red-400 rounded-xl hover:bg-red-500/30 transition-colors flex items-center justify-center gap-2"
                 >
-                  <LogOut className="w-4 h-4 mr-1.5" />
-                  Sign Out
+                  <LogOut className="w-5 h-5" />
+                  <span>Sign Out</span>
                 </button>
-              </>
-            )}
-          </div>
-        </div>
-        
-        <div className="min-h-screen">
-          {children}
-        </div>
-      </main>
-      
-      {/* Mobile menu overlay */}
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Mobile Menu Overlay */}
       {mobileMenuOpen && (
         <div
-          className="fixed inset-0 z-30 bg-black bg-opacity-50 lg:hidden"
+          className="fixed inset-0 z-30 bg-black/50 backdrop-blur-sm md:hidden"
           onClick={() => setMobileMenuOpen(false)}
         />
       )}
-    </div>
-  )
-}
 
-// Import Crown icon since it's not in lucide-react
-function Crown({ className }: { className?: string }) {
-  return (
-    <svg
-      className={className}
-      fill="none"
-      viewBox="0 0 24 24"
-      strokeWidth={1.5}
-      stroke="currentColor"
-    >
-      <path
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        d="M12 3l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91.01L12 3z"
-      />
-    </svg>
+      {/* Main Content */}
+      <main className="relative z-10 pt-20">
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={pathname}
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            transition={{ duration: 0.3 }}
+          >
+            {children}
+          </motion.div>
+        </AnimatePresence>
+      </main>
+    </div>
   )
 }
