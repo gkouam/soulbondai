@@ -11,6 +11,7 @@ import {
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { signOut, useSession } from "next-auth/react"
+import { AITechHeartLogo } from "@/components/ai-tech-heart-logo"
 
 const navigation = [
   { name: "Dashboard", href: "/dashboard", icon: Home },
@@ -57,11 +58,9 @@ export default function DashboardLayout({
         <div className="h-full px-4 py-6 overflow-y-auto">
           {/* Logo */}
           <div className="flex items-center mb-8">
-            <Link href="/dashboard" className="flex items-center space-x-2">
-              <div className="w-8 h-8 bg-gradient-to-br from-purple-600 to-pink-600 rounded-lg flex items-center justify-center">
-                <span className="text-white font-bold text-sm">S</span>
-              </div>
-              <span className="text-xl font-bold text-gray-800">SoulBond</span>
+            <Link href="/dashboard" className="flex items-center space-x-2 group">
+              <AITechHeartLogo size={40} className="transition-transform group-hover:scale-110" />
+              <span className="text-xl font-bold text-gray-800">SoulBond AI</span>
             </Link>
           </div>
           

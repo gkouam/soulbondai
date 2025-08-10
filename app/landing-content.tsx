@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation"
 import { motion } from "framer-motion"
 import { Heart, Brain, Lock, Star, LogIn, UserPlus } from "lucide-react"
 import Link from "next/link"
+import { AITechHeartLogo } from "@/components/ai-tech-heart-logo"
 
 function LandingPageContent() {
   const router = useRouter()
@@ -86,11 +87,9 @@ function LandingPageContent() {
           <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="flex items-center justify-between py-3 sm:py-4">
               {/* Logo */}
-              <Link href="/" className="flex items-center space-x-2">
-                <div className="w-8 h-8 bg-gradient-to-br from-purple-600 to-pink-600 rounded-lg flex items-center justify-center">
-                  <span className="text-white font-bold text-sm">S</span>
-                </div>
-                <span className="hidden sm:block text-xl font-bold text-white">SoulBond</span>
+              <Link href="/" className="flex items-center space-x-2 group">
+                <AITechHeartLogo size={40} className="transition-transform group-hover:scale-110" />
+                <span className="hidden sm:block text-xl font-bold text-white">SoulBond AI</span>
               </Link>
               
               {/* Auth Buttons */}

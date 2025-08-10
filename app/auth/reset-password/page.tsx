@@ -4,6 +4,7 @@ import { useState, useEffect, Suspense } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { motion } from "framer-motion"
 import { Lock, Eye, EyeOff, Mail, AlertCircle } from "lucide-react"
+import { AITechHeartLogo } from "@/components/ai-tech-heart-logo"
 
 function ResetPasswordForm() {
   const router = useRouter()
@@ -123,8 +124,8 @@ function ResetPasswordForm() {
         className="w-full max-w-md"
       >
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-white bg-opacity-20 rounded-full mb-4 backdrop-blur-lg">
-            <Lock className="w-8 h-8" />
+          <div className="inline-flex items-center justify-center mb-4">
+            <AITechHeartLogo size={80} className="drop-shadow-2xl" />
           </div>
           <h1 className="text-3xl font-bold mb-2">
             {mode === "request" ? "Reset Your Password" : "Create New Password"}

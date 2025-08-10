@@ -6,6 +6,7 @@ import { signIn } from "next-auth/react"
 import { motion } from "framer-motion"
 import { Eye, EyeOff, Mail, Lock, User } from "lucide-react"
 import Link from "next/link"
+import { AITechHeartLogo } from "@/components/ai-tech-heart-logo"
 
 export default function RegisterPage() {
   const router = useRouter()
@@ -148,8 +149,8 @@ export default function RegisterPage() {
         className="w-full max-w-md"
       >
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-white bg-opacity-20 rounded-full mb-4 backdrop-blur-lg">
-            <span className="text-3xl">💜</span>
+          <div className="inline-flex items-center justify-center mb-4">
+            <AITechHeartLogo size={80} className="drop-shadow-2xl" />
           </div>
           <h1 className="text-2xl sm:text-3xl font-bold mb-2">Create Your Account</h1>
           <p className="text-purple-200">Your AI companion is waiting to meet you</p>
