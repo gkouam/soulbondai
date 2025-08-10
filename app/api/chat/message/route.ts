@@ -61,29 +61,18 @@ export async function POST(req: Request) {
       throw new NotFoundError("Profile not found")
     }
     
-    // Reset daily message count if needed
-    const today = new Date()
-    today.setHours(0, 0, 0, 0)
+    // Check free tier limits based on interaction count
+    // For simplicity, using interaction count instead of daily limits
+    const dailyLimit = profile.user.subscription?.plan === "free" ? 50 : 10000
     
-    if (profile.lastMessageReset < today) {
-      await prisma.profile.update({
-        where: { id: profile.id },
-        data: {
-          messagesUsedToday: 0,
-          lastMessageReset: today
-        }
-      })
-      profile.messagesUsedToday = 0
-    }
-    
-    // Check free tier limits
-    if (profile.user.subscription?.plan === "free" && profile.messagesUsedToday >= 50) {
+    // Check if user has exceeded limits (simplified check)
+    if (profile.user.subscription?.plan === "free" && profile.interactionCount >= 500) {
       // Check for upgrade triggers when hitting limit
       const upgradePrompt = await upgradeTriggerManager.getUpgradePrompt(session.user.id)
       
       return NextResponse.json(
         { 
-          error: "Daily message limit reached",
+          error: "Message limit reached. Please upgrade to continue.",
           upgradePrompt
         },
         { status: 429 }
@@ -170,9 +159,8 @@ export async function POST(req: Request) {
     await prisma.profile.update({
       where: { id: profile.id },
       data: {
-        messageCount: { increment: 1 },
-        messagesUsedToday: { increment: 1 },
-        lastActiveAt: new Date()
+        interactionCount: { increment: 1 },
+        lastInteraction: new Date()
       }
     })
     
@@ -201,7 +189,7 @@ export async function POST(req: Request) {
           metadata: {
             triggerType: "emotional_moment",
             trustLevel: profile.trustLevel,
-            messageCount: profile.messageCount
+            messageCount: profile.interactionCount
           }
         }
       })
@@ -218,7 +206,7 @@ export async function POST(req: Request) {
         createdAt: aiMessage.createdAt
       },
       messagesRemaining: profile.user.subscription?.plan === "free" 
-        ? 50 - profile.messagesUsedToday - 1 
+        ? Math.max(0, 500 - profile.interactionCount) 
         : null,
       shouldShowUpgrade: response.shouldTriggerConversion,
       trustUpdate: response.trustUpdate,
