@@ -147,8 +147,10 @@ export async function POST(req: Request) {
         conversationId: conversation.id,
         role: "assistant",
         content: response.content,
-        sentiment: response.sentiment,
-        responseTime: Math.round(response.suggestedDelay)
+        metadata: {
+          sentiment: response.sentiment,
+          responseTime: Math.round(response.suggestedDelay)
+        }
       }
     })
 
