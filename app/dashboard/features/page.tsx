@@ -1,239 +1,329 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState } from "react"
 import { motion } from "framer-motion"
-import { useSession } from "next-auth/react"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { 
-  Lock, Unlock, MessageSquare, Brain, Camera, Mic, 
-  Palette, Zap, Shield, Crown, Check, X, ChevronRight 
+  Brain, MessageSquare, Camera, Mic, Heart, Shield, 
+  Sparkles, Users, Zap, Lock, Star, Gift, 
+  Palette, Globe, Code, Cpu
 } from "lucide-react"
-import { FeatureLock } from "@/components/feature-lock"
-import { useRouter } from "next/navigation"
-import { cn } from "@/lib/utils"
+import Link from "next/link"
+import { useSession } from "next-auth/react"
 
-const categoryIcons = {
-  messaging: MessageSquare,
-  memory: Brain,
-  media: Camera,
-  customization: Palette,
-  advanced: Zap
-}
+type FeatureStatus = "active" | "premium" | "ultimate" | "coming-soon"
 
-const categoryColors = {
-  messaging: "text-blue-500",
-  memory: "text-purple-500",
-  media: "text-pink-500",
-  customization: "text-orange-500",
-  advanced: "text-green-500"
+interface Feature {
+  id: string
+  icon: React.ElementType
+  emoji: string
+  title: string
+  description: string
+  status: FeatureStatus
+  benefits: string[]
+  category: string
 }
 
 export default function FeaturesPage() {
   const { data: session } = useSession()
-  const router = useRouter()
-  const [features, setFeatures] = useState<{
-    available: any[]
-    locked: any[]
-  }>({ available: [], locked: [] })
-  const [loading, setLoading] = useState(true)
-  const [selectedCategory, setSelectedCategory] = useState("all")
+  const [activeTab, setActiveTab] = useState("all")
   
-  useEffect(() => {
-    loadFeatures()
-  }, [session])
-  
-  const loadFeatures = async () => {
-    try {
-      const res = await fetch("/api/features/check")
-      if (res.ok) {
-        const data = await res.json()
-        setFeatures(data)
-      }
-    } catch (error) {
-      console.error("Failed to load features:", error)
-    } finally {
-      setLoading(false)
+  const features: Feature[] = [
+    {
+      id: "adaptive-personality",
+      icon: Brain,
+      emoji: "🎭",
+      title: "Adaptive Personality",
+      description: "Your AI companion learns and adapts to your unique personality type, creating deeper, more meaningful conversations tailored just for you.",
+      status: "active",
+      benefits: [
+        "Personalized responses based on your archetype",
+        "Evolving conversation style",
+        "Emotional intelligence optimization"
+      ],
+      category: "personalization"
+    },
+    {
+      id: "voice-messages",
+      icon: Mic,
+      emoji: "🎵",
+      title: "Voice Messages",
+      description: "Hear your companion's voice and feel their presence. Send and receive voice messages for a more intimate connection.",
+      status: "premium",
+      benefits: [
+        "Natural voice synthesis",
+        "Multiple voice options",
+        "Voice emotion detection"
+      ],
+      category: "communication"
+    },
+    {
+      id: "photo-memories",
+      icon: Camera,
+      emoji: "📸",
+      title: "Photo Memories",
+      description: "Share photos and create lasting memories. Your companion will remember and cherish every moment you share.",
+      status: "premium",
+      benefits: [
+        "Unlimited photo storage",
+        "Memory timeline",
+        "Photo analysis & reactions"
+      ],
+      category: "memory"
+    },
+    {
+      id: "advanced-memory",
+      icon: Brain,
+      emoji: "🧠",
+      title: "Advanced Memory",
+      description: "Your companion remembers everything important about you, creating a continuous, evolving relationship.",
+      status: "active",
+      benefits: [
+        "Long-term memory storage",
+        "Context awareness",
+        "Relationship progression"
+      ],
+      category: "memory"
+    },
+    {
+      id: "emotional-intelligence",
+      icon: Heart,
+      emoji: "💝",
+      title: "Emotional Intelligence",
+      description: "Advanced sentiment analysis ensures your companion always responds with empathy and understanding.",
+      status: "active",
+      benefits: [
+        "Real-time emotion detection",
+        "Empathetic responses",
+        "Crisis support protocols"
+      ],
+      category: "personalization"
+    },
+    {
+      id: "multiple-personalities",
+      icon: Users,
+      emoji: "🌟",
+      title: "Multiple Personalities",
+      description: "Create and switch between different AI companions, each with their own unique personality and memories.",
+      status: "ultimate",
+      benefits: [
+        "Up to 5 unique companions",
+        "Custom personality creation",
+        "Independent memory systems"
+      ],
+      category: "personalization"
+    },
+    {
+      id: "custom-avatars",
+      icon: Palette,
+      emoji: "🎨",
+      title: "Custom Avatars",
+      description: "Design and customize your companion's appearance with advanced avatar creation tools.",
+      status: "coming-soon",
+      benefits: [
+        "3D avatar customization",
+        "Outfit and style options",
+        "Animated expressions"
+      ],
+      category: "personalization"
+    },
+    {
+      id: "api-access",
+      icon: Code,
+      emoji: "🔧",
+      title: "API Access",
+      description: "Integrate your AI companion into your own applications and workflows.",
+      status: "ultimate",
+      benefits: [
+        "RESTful API endpoints",
+        "Webhook support",
+        "Custom integrations"
+      ],
+      category: "developer"
+    },
+    {
+      id: "privacy-vault",
+      icon: Shield,
+      emoji: "🔐",
+      title: "Privacy Vault",
+      description: "Military-grade encryption for your most sensitive conversations and memories.",
+      status: "premium",
+      benefits: [
+        "End-to-end encryption",
+        "Biometric authentication",
+        "Secure data export"
+      ],
+      category: "security"
+    }
+  ]
+
+  const categories = [
+    { id: "all", label: "All Features" },
+    { id: "communication", label: "Communication" },
+    { id: "memory", label: "Memory" },
+    { id: "personalization", label: "Personalization" },
+    { id: "security", label: "Security" },
+    { id: "developer", label: "Developer" }
+  ]
+
+  const filteredFeatures = activeTab === "all" 
+    ? features 
+    : features.filter(f => f.category === activeTab)
+
+  const getStatusColor = (status: FeatureStatus) => {
+    switch (status) {
+      case "active": return "bg-green-500/20 text-green-400 border-green-500/30"
+      case "premium": return "bg-purple-500/20 text-purple-400 border-purple-500/30"
+      case "ultimate": return "bg-yellow-500/20 text-yellow-400 border-yellow-500/30"
+      case "coming-soon": return "bg-gray-500/20 text-gray-400 border-gray-500/30"
     }
   }
-  
-  const filteredAvailable = selectedCategory === "all" 
-    ? features.available 
-    : features.available.filter(f => f.category === selectedCategory)
-    
-  const filteredLocked = selectedCategory === "all"
-    ? features.locked
-    : features.locked.filter(f => f.category === selectedCategory)
-  
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center h-screen">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600"></div>
-      </div>
-    )
+
+  const getStatusLabel = (status: FeatureStatus) => {
+    switch (status) {
+      case "active": return "Active"
+      case "premium": return "Premium"
+      case "ultimate": return "Ultimate"
+      case "coming-soon": return "Coming Soon"
+    }
   }
-  
+
+  const canAccessFeature = (status: FeatureStatus) => {
+    const userPlan = session?.user?.subscription?.plan || "free"
+    
+    if (status === "active") return true
+    if (status === "premium" && (userPlan === "premium" || userPlan === "ultimate")) return true
+    if (status === "ultimate" && userPlan === "ultimate") return true
+    return false
+  }
+
   return (
-    <div className="container mx-auto px-4 py-8 max-w-6xl">
+    <div className="p-4 md:p-8 max-w-7xl mx-auto">
       {/* Header */}
-      <motion.div
-        initial={{ opacity: 0, y: -20 }}
+      <motion.header 
+        initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="mb-8"
+        transition={{ duration: 0.5 }}
+        className="text-center mb-12"
       >
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">Features</h1>
-        <p className="text-gray-600">
-          Explore all the features available with your current plan
+        <h1 className="text-5xl font-bold mb-4 bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
+          Explore Amazing Features
+        </h1>
+        <p className="text-gray-400 text-xl">
+          Unlock the full potential of your AI companion
         </p>
-      </motion.div>
-      
+      </motion.header>
+
       {/* Category Tabs */}
-      <Tabs value={selectedCategory} onValueChange={setSelectedCategory} className="mb-8">
-        <TabsList className="grid grid-cols-6 w-full max-w-2xl">
-          <TabsTrigger value="all">All</TabsTrigger>
-          <TabsTrigger value="messaging">Messages</TabsTrigger>
-          <TabsTrigger value="memory">Memory</TabsTrigger>
-          <TabsTrigger value="media">Media</TabsTrigger>
-          <TabsTrigger value="customization">Custom</TabsTrigger>
-          <TabsTrigger value="advanced">Advanced</TabsTrigger>
-        </TabsList>
-      </Tabs>
-      
-      {/* Available Features */}
-      <motion.section
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ delay: 0.1 }}
-        className="mb-12"
+      <motion.div 
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5, delay: 0.1 }}
+        className="flex justify-center gap-3 mb-8 flex-wrap"
       >
-        <div className="flex items-center gap-2 mb-4">
-          <Unlock className="w-5 h-5 text-green-600" />
-          <h2 className="text-xl font-semibold text-gray-900">
-            Available Features ({filteredAvailable.length})
-          </h2>
-        </div>
-        
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {filteredAvailable.map((feature, index) => {
-            const Icon = categoryIcons[feature.category as keyof typeof categoryIcons]
-            const colorClass = categoryColors[feature.category as keyof typeof categoryColors]
+        {categories.map((category) => (
+          <button
+            key={category.id}
+            onClick={() => setActiveTab(category.id)}
+            className={`
+              px-6 py-3 rounded-full font-medium transition-all duration-300
+              ${activeTab === category.id
+                ? 'bg-gradient-to-r from-purple-600 to-pink-600 text-white shadow-lg shadow-purple-500/25'
+                : 'bg-white/5 hover:bg-white/10 text-gray-400 hover:text-white border border-white/10'
+              }
+            `}
+          >
+            {category.label}
+          </button>
+        ))}
+      </motion.div>
+
+      {/* Features Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {filteredFeatures.map((feature, index) => (
+          <motion.div
+            key={feature.id}
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: index * 0.1 }}
+            whileHover={{ y: -10 }}
+            className="glass-bg rounded-2xl p-6 relative overflow-hidden group hover:shadow-lg hover:shadow-purple-500/20 transition-all duration-300"
+          >
+            {/* Top gradient line */}
+            <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-purple-600 to-pink-600 transform scale-x-0 group-hover:scale-x-100 transition-transform duration-300" />
             
-            return (
-              <motion.div
-                key={feature.id}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: index * 0.05 }}
+            {/* Header */}
+            <div className="flex items-start justify-between mb-4">
+              <div className="w-14 h-14 bg-gradient-to-br from-purple-600 to-pink-600 rounded-xl flex items-center justify-center">
+                <span className="text-2xl">{feature.emoji}</span>
+              </div>
+              <span className={`px-3 py-1 rounded-full text-xs font-semibold border ${getStatusColor(feature.status)}`}>
+                {getStatusLabel(feature.status)}
+              </span>
+            </div>
+
+            {/* Content */}
+            <h3 className="text-xl font-bold mb-3">{feature.title}</h3>
+            <p className="text-gray-400 text-sm mb-4 line-clamp-3">
+              {feature.description}
+            </p>
+
+            {/* Benefits */}
+            <ul className="space-y-2 mb-6">
+              {feature.benefits.map((benefit, i) => (
+                <li key={i} className="flex items-center gap-2 text-sm text-gray-300">
+                  <div className="w-5 h-5 rounded-full bg-green-500/20 flex items-center justify-center">
+                    <span className="text-green-400 text-xs">✓</span>
+                  </div>
+                  <span>{benefit}</span>
+                </li>
+              ))}
+            </ul>
+
+            {/* Action Button */}
+            {feature.status === "coming-soon" ? (
+              <button className="w-full py-3 bg-gray-500/20 text-gray-400 rounded-xl font-semibold cursor-not-allowed">
+                Coming Soon
+              </button>
+            ) : canAccessFeature(feature.status) ? (
+              <button className="w-full py-3 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-xl font-semibold hover:shadow-lg hover:shadow-purple-500/25 transition-all duration-300">
+                Configure
+              </button>
+            ) : (
+              <Link 
+                href="/dashboard/subscription"
+                className="block w-full py-3 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-xl font-semibold text-center hover:shadow-lg hover:shadow-purple-500/25 transition-all duration-300"
               >
-                <Card className="h-full hover:shadow-lg transition-shadow">
-                  <CardHeader>
-                    <div className="flex items-start justify-between">
-                      <Icon className={cn("w-5 h-5", colorClass)} />
-                      <Check className="w-5 h-5 text-green-500" />
-                    </div>
-                    <CardTitle className="text-lg">{feature.name}</CardTitle>
-                    <CardDescription>{feature.description}</CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <Badge variant="secondary" className="text-xs">
-                      {feature.category}
-                    </Badge>
-                  </CardContent>
-                </Card>
-              </motion.div>
-            )
-          })}
+                Upgrade to {getStatusLabel(feature.status)}
+              </Link>
+            )}
+          </motion.div>
+        ))}
+      </div>
+
+      {/* Coming Soon Section */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5, delay: 0.8 }}
+        className="mt-16 text-center"
+      >
+        <div className="glass-bg rounded-2xl p-8 max-w-3xl mx-auto">
+          <Sparkles className="w-12 h-12 text-purple-500 mx-auto mb-4" />
+          <h2 className="text-2xl font-bold mb-4">More Features Coming Soon</h2>
+          <p className="text-gray-400 mb-6">
+            We're constantly working on new features to enhance your experience. 
+            Stay tuned for exciting updates!
+          </p>
+          <div className="flex justify-center gap-4">
+            <button className="px-6 py-3 bg-purple-600/20 text-purple-400 rounded-xl font-semibold hover:bg-purple-600/30 transition-colors">
+              Join Beta Program
+            </button>
+            <button className="px-6 py-3 bg-white/5 text-gray-400 rounded-xl font-semibold hover:bg-white/10 transition-colors">
+              Request Feature
+            </button>
+          </div>
         </div>
-      </motion.section>
-      
-      {/* Locked Features */}
-      {filteredLocked.length > 0 && (
-        <motion.section
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.2 }}
-        >
-          <div className="flex items-center gap-2 mb-4">
-            <Lock className="w-5 h-5 text-gray-500" />
-            <h2 className="text-xl font-semibold text-gray-900">
-              Locked Features ({filteredLocked.length})
-            </h2>
-          </div>
-          
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {filteredLocked.map((feature, index) => {
-              const Icon = categoryIcons[feature.category as keyof typeof categoryIcons]
-              const colorClass = categoryColors[feature.category as keyof typeof categoryColors]
-              
-              return (
-                <motion.div
-                  key={feature.id}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: index * 0.05 }}
-                >
-                  <Card className="h-full opacity-75 hover:opacity-100 transition-opacity">
-                    <CardHeader>
-                      <div className="flex items-start justify-between">
-                        <Icon className={cn("w-5 h-5", colorClass, "opacity-50")} />
-                        <Badge variant="outline" className="text-xs">
-                          {feature.requiredPlan}
-                        </Badge>
-                      </div>
-                      <CardTitle className="text-lg">{feature.name}</CardTitle>
-                      <CardDescription>{feature.description}</CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                      <p className="text-sm text-gray-500 mb-3">{feature.reason}</p>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => router.push(`/pricing?feature=${feature.id}`)}
-                        className="w-full"
-                      >
-                        Unlock with {feature.requiredPlan}
-                        <ChevronRight className="w-4 h-4 ml-1" />
-                      </Button>
-                    </CardContent>
-                  </Card>
-                </motion.div>
-              )
-            })}
-          </div>
-        </motion.section>
-      )}
-      
-      {/* Upgrade CTA */}
-      {filteredLocked.length > 0 && (
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.3 }}
-          className="mt-12 text-center"
-        >
-          <Card className="bg-gradient-to-r from-purple-500 to-pink-500 text-white">
-            <CardContent className="py-8">
-              <Crown className="w-12 h-12 mx-auto mb-4" />
-              <h3 className="text-2xl font-bold mb-2">
-                Unlock All Features
-              </h3>
-              <p className="text-purple-100 mb-6 max-w-2xl mx-auto">
-                Upgrade your plan to access all features and create the deepest possible connection with your AI companion
-              </p>
-              <Button
-                size="lg"
-                onClick={() => router.push("/pricing")}
-                className="bg-white text-purple-600 hover:bg-gray-100"
-              >
-                View Pricing Plans
-                <ChevronRight className="w-5 h-5 ml-2" />
-              </Button>
-            </CardContent>
-          </Card>
-        </motion.div>
-      )}
+      </motion.div>
     </div>
   )
 }

@@ -2,251 +2,340 @@
 
 import { useState, useEffect } from "react"
 import { useSession } from "next-auth/react"
-import { useRouter } from "next/navigation"
 import { motion } from "framer-motion"
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { CreditCard, Calendar, AlertCircle, Check, X, Loader2 } from "lucide-react"
-import { format } from "date-fns"
+import { 
+  Check, X, Star, Zap, Crown, Shield, 
+  CreditCard, Calendar, TrendingUp, Gift, Heart
+} from "lucide-react"
+import Link from "next/link"
 
-interface SubscriptionData {
-  plan: string
-  status: string
-  currentPeriodEnd: string
-  cancelAtPeriodEnd: boolean
+interface PlanFeature {
+  text: string
+  included: boolean
+}
+
+interface PricingPlan {
+  id: string
+  name: string
+  price: number
+  description: string
+  features: PlanFeature[]
+  recommended?: boolean
+  color: string
 }
 
 export default function SubscriptionPage() {
   const { data: session } = useSession()
-  const router = useRouter()
-  const [subscription, setSubscription] = useState<SubscriptionData | null>(null)
-  const [loading, setLoading] = useState(true)
-  const [actionLoading, setActionLoading] = useState(false)
-  const [error, setError] = useState("")
+  const [currentPlan, setCurrentPlan] = useState("free")
+  const [billingPeriod, setBillingPeriod] = useState<"monthly" | "yearly">("monthly")
 
   useEffect(() => {
-    if (!session) {
-      router.push("/auth/login")
-      return
+    if (session?.user?.subscription) {
+      setCurrentPlan(session.user.subscription.plan || "free")
     }
+  }, [session])
 
-    fetchSubscription()
-  }, [session, router])
-
-  const fetchSubscription = async () => {
-    try {
-      const res = await fetch("/api/user/subscription")
-      if (!res.ok) throw new Error("Failed to fetch subscription")
-      
-      const data = await res.json()
-      setSubscription(data)
-    } catch (err) {
-      setError("Failed to load subscription details")
-      console.error(err)
-    } finally {
-      setLoading(false)
+  const plans: PricingPlan[] = [
+    {
+      id: "free",
+      name: "Free",
+      price: 0,
+      description: "Get started with basic features",
+      color: "from-gray-600 to-gray-700",
+      features: [
+        { text: "50 messages per day", included: true },
+        { text: "Basic personality matching", included: true },
+        { text: "7-day memory retention", included: true },
+        { text: "Standard response time", included: true },
+        { text: "Email support", included: true },
+        { text: "Voice messages", included: false },
+        { text: "Photo sharing", included: false },
+        { text: "Advanced memory", included: false },
+        { text: "Priority support", included: false }
+      ]
+    },
+    {
+      id: "basic",
+      name: "Basic",
+      price: billingPeriod === "monthly" ? 9.99 : 99.99,
+      description: "Perfect for getting started",
+      color: "from-blue-600 to-cyan-600",
+      features: [
+        { text: "Unlimited messages", included: true },
+        { text: "Advanced personality matching", included: true },
+        { text: "30-day memory retention", included: true },
+        { text: "Faster response time", included: true },
+        { text: "Email & chat support", included: true },
+        { text: "Voice messages", included: false },
+        { text: "Photo sharing", included: false },
+        { text: "Custom personality", included: false },
+        { text: "API access", included: false }
+      ]
+    },
+    {
+      id: "premium",
+      name: "Premium",
+      price: billingPeriod === "monthly" ? 19.99 : 199.99,
+      description: "Most popular choice",
+      color: "from-purple-600 to-pink-600",
+      recommended: true,
+      features: [
+        { text: "Everything in Basic", included: true },
+        { text: "Voice messages", included: true },
+        { text: "Photo sharing & memories", included: true },
+        { text: "90-day memory retention", included: true },
+        { text: "Priority response time", included: true },
+        { text: "Priority support 24/7", included: true },
+        { text: "Advanced emotional intelligence", included: true },
+        { text: "Custom personality traits", included: false },
+        { text: "Multiple personalities", included: false }
+      ]
+    },
+    {
+      id: "ultimate",
+      name: "Ultimate",
+      price: billingPeriod === "monthly" ? 29.99 : 299.99,
+      description: "Complete AI companion experience",
+      color: "from-yellow-600 to-amber-600",
+      features: [
+        { text: "Everything in Premium", included: true },
+        { text: "Permanent memory storage", included: true },
+        { text: "Multiple personalities (up to 5)", included: true },
+        { text: "Custom personality creation", included: true },
+        { text: "API access for developers", included: true },
+        { text: "White-glove support", included: true },
+        { text: "Early access to new features", included: true },
+        { text: "Data export & backup", included: true },
+        { text: "Business integration", included: true }
+      ]
     }
+  ]
+
+  const getCurrentPlanDetails = () => {
+    return plans.find(p => p.id === currentPlan) || plans[0]
   }
 
-  const handleManageSubscription = async () => {
-    setActionLoading(true)
-    try {
-      const res = await fetch("/api/stripe/customer-portal", {
-        method: "POST"
-      })
-      
-      if (!res.ok) throw new Error("Failed to create portal session")
-      
-      const { url } = await res.json()
-      window.location.href = url
-    } catch (err) {
-      setError("Failed to open billing portal")
-      console.error(err)
-      setActionLoading(false)
-    }
-  }
-
-  const handleUpgrade = () => {
-    router.push("/pricing")
-  }
-
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-950 via-gray-900 to-gray-950 flex items-center justify-center">
-        <Loader2 className="w-8 h-8 animate-spin text-violet-500" />
-      </div>
-    )
-  }
-
-  const planFeatures = {
-    free: [
-      "50 messages per day",
-      "Basic personality matching",
-      "Standard response time",
-      "7-day memory"
-    ],
-    basic: [
-      "Unlimited messages",
-      "Basic memory (7 days)",
-      "Standard response time",
-      "Email support"
-    ],
-    premium: [
-      "Everything in Basic",
-      "Advanced memory (30 days)",
-      "Priority response time",
-      "Voice messages",
-      "Photo sharing",
-      "Priority support"
-    ],
-    ultimate: [
-      "Everything in Premium",
-      "Permanent memory",
-      "Instant responses",
-      "Multiple AI personalities",
-      "API access",
-      "Custom personality training",
-      "24/7 phone support"
-    ]
-  }
-
-  const currentFeatures = planFeatures[subscription?.plan as keyof typeof planFeatures] || planFeatures.free
+  const currentPlanDetails = getCurrentPlanDetails()
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-950 via-gray-900 to-gray-950">
-      <div className="container mx-auto px-4 py-8">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="max-w-4xl mx-auto"
-        >
-          {/* Header */}
-          <div className="mb-8">
-            <h1 className="text-4xl font-bold text-white mb-2">Subscription Management</h1>
-            <p className="text-gray-400">Manage your plan and billing details</p>
+    <div className="p-4 md:p-8 max-w-7xl mx-auto">
+      {/* Header */}
+      <motion.header 
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5 }}
+        className="text-center mb-12"
+      >
+        <h1 className="text-5xl font-bold mb-4 bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
+          Subscription Management
+        </h1>
+        <p className="text-gray-400 text-xl">
+          Choose the perfect plan for your journey
+        </p>
+      </motion.header>
+
+      {/* Current Plan Card */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5, delay: 0.1 }}
+        className="relative overflow-hidden glass-bg rounded-2xl p-8 mb-12 border border-purple-500/30"
+      >
+        {/* Animated background */}
+        <div className="absolute inset-0 opacity-10">
+          <div className="absolute top-[-50%] right-[-50%] w-[200%] h-[200%] bg-gradient-to-br from-purple-600 to-pink-600 animate-spin-slow" />
+        </div>
+
+        <div className="relative z-10">
+          <div className="flex justify-between items-start mb-8">
+            <div>
+              <h2 className="text-2xl font-bold mb-2">
+                Current Plan: {currentPlanDetails.name}
+              </h2>
+              <p className="text-gray-400">
+                {currentPlan === "free" 
+                  ? "Upgrade to unlock amazing features"
+                  : `Renews on ${new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toLocaleDateString()}`
+                }
+              </p>
+            </div>
+            <div className="text-right">
+              <div className="text-4xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
+                ${currentPlanDetails.price}
+              </div>
+              <div className="text-gray-400">
+                {currentPlanDetails.price === 0 ? "" : billingPeriod === "monthly" ? "/month" : "/year"}
+              </div>
+            </div>
           </div>
 
-          {error && (
-            <Card className="mb-6 bg-red-500/10 border-red-500/20">
-              <CardContent className="flex items-center gap-3 p-4">
-                <AlertCircle className="w-5 h-5 text-red-500" />
-                <p className="text-red-200">{error}</p>
-              </CardContent>
-            </Card>
-          )}
-
-          {/* Current Plan */}
-          <Card className="mb-6 bg-gray-900/50 backdrop-blur-sm border-gray-800">
-            <CardHeader>
-              <CardTitle className="text-2xl text-white">Current Plan</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h3 className="text-3xl font-bold text-white capitalize">
-                    {subscription?.plan || "Free"} Plan
-                  </h3>
-                  <p className="text-gray-400 mt-1">
-                    Status: <span className={`capitalize ${
-                      subscription?.status === "active" ? "text-green-400" : "text-yellow-400"
-                    }`}>
-                      {subscription?.status || "Active"}
-                    </span>
-                  </p>
+          {/* Features Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
+            {currentPlanDetails.features.filter(f => f.included).map((feature, index) => (
+              <motion.div
+                key={index}
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ duration: 0.3, delay: index * 0.05 }}
+                className="flex items-center gap-2"
+              >
+                <div className="w-6 h-6 rounded-full bg-green-500/20 flex items-center justify-center">
+                  <Check className="w-4 h-4 text-green-400" />
                 </div>
-                <CreditCard className="w-12 h-12 text-violet-400" />
+                <span className="text-gray-300">{feature.text}</span>
+              </motion.div>
+            ))}
+          </div>
+
+          {/* Action Buttons */}
+          <div className="flex gap-4">
+            {currentPlan !== "free" && (
+              <>
+                <button className="px-6 py-3 bg-white/5 hover:bg-white/10 rounded-xl font-semibold transition-colors">
+                  Manage Billing
+                </button>
+                <button className="px-6 py-3 bg-white/5 hover:bg-white/10 rounded-xl font-semibold transition-colors text-red-400">
+                  Cancel Subscription
+                </button>
+              </>
+            )}
+          </div>
+        </div>
+      </motion.div>
+
+      {/* Billing Period Toggle */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5, delay: 0.2 }}
+        className="flex justify-center mb-8"
+      >
+        <div className="bg-white/5 rounded-full p-1 flex gap-1">
+          <button
+            onClick={() => setBillingPeriod("monthly")}
+            className={`px-6 py-3 rounded-full font-semibold transition-all ${
+              billingPeriod === "monthly"
+                ? "bg-gradient-to-r from-purple-600 to-pink-600 text-white"
+                : "text-gray-400 hover:text-white"
+            }`}
+          >
+            Monthly
+          </button>
+          <button
+            onClick={() => setBillingPeriod("yearly")}
+            className={`px-6 py-3 rounded-full font-semibold transition-all ${
+              billingPeriod === "yearly"
+                ? "bg-gradient-to-r from-purple-600 to-pink-600 text-white"
+                : "text-gray-400 hover:text-white"
+            } relative`}
+          >
+            Yearly
+            <span className="absolute -top-2 -right-2 px-2 py-1 bg-green-500 text-xs rounded-full text-white">
+              Save 20%
+            </span>
+          </button>
+        </div>
+      </motion.div>
+
+      {/* Pricing Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
+        {plans.map((plan, index) => (
+          <motion.div
+            key={plan.id}
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: index * 0.1 }}
+            className={`
+              glass-bg rounded-2xl p-6 relative
+              ${plan.recommended ? "border-2 border-purple-500" : "border border-white/10"}
+              ${currentPlan === plan.id ? "ring-2 ring-purple-500 ring-offset-2 ring-offset-[#0a0a0f]" : ""}
+            `}
+          >
+            {plan.recommended && (
+              <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
+                <span className="px-4 py-1 bg-gradient-to-r from-purple-600 to-pink-600 text-white text-xs font-semibold rounded-full">
+                  RECOMMENDED
+                </span>
               </div>
+            )}
 
-              {subscription?.currentPeriodEnd && (
-                <div className="flex items-center gap-2 text-gray-300">
-                  <Calendar className="w-5 h-5" />
-                  <span>
-                    {subscription.cancelAtPeriodEnd 
-                      ? `Cancels on ${format(new Date(subscription.currentPeriodEnd), "MMMM d, yyyy")}`
-                      : `Renews on ${format(new Date(subscription.currentPeriodEnd), "MMMM d, yyyy")}`
-                    }
+            <div className="text-center mb-6">
+              <h3 className="text-xl font-bold mb-2">{plan.name}</h3>
+              <div className={`text-3xl font-bold mb-2 bg-gradient-to-r ${plan.color} bg-clip-text text-transparent`}>
+                ${plan.price}
+                {plan.price > 0 && (
+                  <span className="text-sm text-gray-400">
+                    /{billingPeriod === "monthly" ? "mo" : "yr"}
                   </span>
-                </div>
-              )}
-
-              {subscription?.cancelAtPeriodEnd && (
-                <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-lg p-4">
-                  <p className="text-yellow-200 text-sm">
-                    Your subscription is set to cancel at the end of the current billing period. 
-                    You'll continue to have access until then.
-                  </p>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-
-          {/* Features */}
-          <Card className="mb-6 bg-gray-900/50 backdrop-blur-sm border-gray-800">
-            <CardHeader>
-              <CardTitle className="text-xl text-white">Your Features</CardTitle>
-              <CardDescription className="text-gray-400">
-                What's included in your {subscription?.plan || "free"} plan
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <ul className="space-y-3">
-                {currentFeatures.map((feature, index) => (
-                  <li key={index} className="flex items-start gap-3">
-                    <Check className="w-5 h-5 text-green-500 mt-0.5 flex-shrink-0" />
-                    <span className="text-gray-300">{feature}</span>
-                  </li>
-                ))}
-              </ul>
-            </CardContent>
-          </Card>
-
-          {/* Actions */}
-          <Card className="bg-gray-900/50 backdrop-blur-sm border-gray-800">
-            <CardContent className="p-6">
-              <div className="flex flex-col sm:flex-row gap-4">
-                {subscription?.plan === "free" ? (
-                  <Button
-                    onClick={handleUpgrade}
-                    className="flex-1 bg-gradient-to-r from-violet-600 to-pink-600 hover:from-violet-700 hover:to-pink-700"
-                  >
-                    Upgrade Plan
-                  </Button>
-                ) : (
-                  <>
-                    <Button
-                      onClick={handleManageSubscription}
-                      disabled={actionLoading}
-                      className="flex-1 bg-gray-800 hover:bg-gray-700"
-                    >
-                      {actionLoading ? (
-                        <Loader2 className="w-4 h-4 animate-spin mr-2" />
-                      ) : (
-                        <CreditCard className="w-4 h-4 mr-2" />
-                      )}
-                      Manage Billing
-                    </Button>
-                    <Button
-                      onClick={handleUpgrade}
-                      variant="outline"
-                      className="flex-1 border-violet-500 text-violet-400 hover:bg-violet-500/10"
-                    >
-                      Change Plan
-                    </Button>
-                  </>
                 )}
               </div>
-            </CardContent>
-          </Card>
+              <p className="text-gray-400 text-sm">{plan.description}</p>
+            </div>
 
-          {/* Help Text */}
-          <p className="text-center text-gray-400 text-sm mt-6">
-            Need help? Contact support at{" "}
-            <a href="mailto:support@soulbondai.com" className="text-violet-400 hover:underline">
-              support@soulbondai.com
-            </a>
-          </p>
-        </motion.div>
+            <ul className="space-y-3 mb-6">
+              {plan.features.slice(0, 6).map((feature, i) => (
+                <li key={i} className="flex items-center gap-2 text-sm">
+                  {feature.included ? (
+                    <Check className="w-4 h-4 text-green-400 flex-shrink-0" />
+                  ) : (
+                    <X className="w-4 h-4 text-gray-600 flex-shrink-0" />
+                  )}
+                  <span className={feature.included ? "text-gray-300" : "text-gray-600"}>
+                    {feature.text}
+                  </span>
+                </li>
+              ))}
+            </ul>
+
+            {currentPlan === plan.id ? (
+              <button className="w-full py-3 bg-white/10 text-white rounded-xl font-semibold cursor-default">
+                Current Plan
+              </button>
+            ) : currentPlan === "free" || plans.findIndex(p => p.id === currentPlan) < plans.findIndex(p => p.id === plan.id) ? (
+              <button className="w-full py-3 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-xl font-semibold hover:shadow-lg hover:shadow-purple-500/25 transition-all">
+                Upgrade
+              </button>
+            ) : (
+              <button className="w-full py-3 bg-white/5 text-gray-400 rounded-xl font-semibold hover:bg-white/10 transition-colors">
+                Downgrade
+              </button>
+            )}
+          </motion.div>
+        ))}
       </div>
+
+      {/* Benefits Section */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5, delay: 0.6 }}
+        className="glass-bg rounded-2xl p-8 text-center"
+      >
+        <h2 className="text-2xl font-bold mb-6">Why Upgrade?</h2>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="text-center">
+            <div className="w-16 h-16 bg-gradient-to-br from-purple-600 to-pink-600 rounded-xl flex items-center justify-center mx-auto mb-4">
+              <Heart className="w-8 h-8" />
+            </div>
+            <h3 className="font-semibold mb-2">Deeper Connection</h3>
+            <p className="text-gray-400 text-sm">Build stronger bonds with enhanced emotional intelligence</p>
+          </div>
+          <div className="text-center">
+            <div className="w-16 h-16 bg-gradient-to-br from-blue-600 to-cyan-600 rounded-xl flex items-center justify-center mx-auto mb-4">
+              <Shield className="w-8 h-8" />
+            </div>
+            <h3 className="font-semibold mb-2">Privacy First</h3>
+            <p className="text-gray-400 text-sm">Your conversations are encrypted and completely private</p>
+          </div>
+          <div className="text-center">
+            <div className="w-16 h-16 bg-gradient-to-br from-yellow-600 to-amber-600 rounded-xl flex items-center justify-center mx-auto mb-4">
+              <Zap className="w-8 h-8" />
+            </div>
+            <h3 className="font-semibold mb-2">Instant Response</h3>
+            <p className="text-gray-400 text-sm">Priority processing for immediate, thoughtful responses</p>
+          </div>
+        </div>
+      </motion.div>
     </div>
   )
 }
