@@ -168,7 +168,7 @@ export class MemoryManager {
           messageCount: context.conversationHistory.length,
           trustLevel: context.userProfile.trustLevel
         },
-        significance: significance.score,
+        importance: significance.score,
         embedding,
         keywords: significance.keywords,
         expiresAt: significance.expiresAt
@@ -185,7 +185,7 @@ export class MemoryManager {
           memoryId: memory.id,
           type: memory.type,
           category: memory.category,
-          significance: memory.significance,
+          importance: memory.importance,
           createdAt: memory.createdAt.toISOString()
         }
       )
@@ -221,7 +221,7 @@ export class MemoryManager {
     const recentMemories = await prisma.memory.findMany({
       where: {
         userId,
-        significance: { gte: 6 },
+        importance: { gte: 6 },
         OR: [
           { expiresAt: null },
           { expiresAt: { gt: new Date() } }
@@ -245,7 +245,7 @@ export class MemoryManager {
       
       return {
         ...memory,
-        relevanceScore: memory.significance * decayFactor
+        relevanceScore: memory.importance * decayFactor
       }
     })
     
@@ -268,7 +268,7 @@ export class MemoryManager {
       select: {
         type: true,
         category: true,
-        significance: true,
+        importance: true,
         createdAt: true
       }
     })
@@ -284,7 +284,7 @@ export class MemoryManager {
           )
         : null,
       averageSignificance: memories.length > 0
-        ? memories.reduce((sum, mem) => sum + mem.significance, 0) / memories.length
+        ? memories.reduce((sum, mem) => sum + mem.importance, 0) / memories.length
         : 0
     }
     
