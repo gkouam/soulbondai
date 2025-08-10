@@ -5,12 +5,10 @@ import { useRouter, useSearchParams } from "next/navigation"
 import { motion } from "framer-motion"
 import { Heart, Brain, Lock, Star, LogIn, UserPlus } from "lucide-react"
 import Link from "next/link"
-import { useSession } from "next-auth/react"
 
 function LandingPageContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
-  const { data: session } = useSession()
   const [headline, setHeadline] = useState("")
   const [activeUsers, setActiveUsers] = useState(50000)
 
@@ -97,31 +95,20 @@ function LandingPageContent() {
               
               {/* Auth Buttons */}
               <div className="flex items-center space-x-3">
-                {session ? (
-                  <Link
-                    href="/dashboard"
-                    className="px-4 py-2 bg-gradient-to-r from-violet-600 to-pink-600 text-white rounded-full font-medium text-sm hover:shadow-lg transition-all duration-300"
-                  >
-                    Go to Dashboard
-                  </Link>
-                ) : (
-                  <>
-                    <Link
-                      href="/auth/login"
-                      className="flex items-center px-4 py-2 text-white hover:text-violet-300 font-medium text-sm transition-colors"
-                    >
-                      <LogIn className="w-4 h-4 mr-1.5" />
-                      Log In
-                    </Link>
-                    <Link
-                      href="/auth/register"
-                      className="flex items-center px-4 py-2 bg-gradient-to-r from-violet-600 to-pink-600 text-white rounded-full font-medium text-sm hover:shadow-lg transition-all duration-300"
-                    >
-                      <UserPlus className="w-4 h-4 mr-1.5" />
-                      Sign Up
-                    </Link>
-                  </>
-                )}
+                <Link
+                  href="/auth/login"
+                  className="flex items-center px-4 py-2 text-white hover:text-violet-300 font-medium text-sm transition-colors"
+                >
+                  <LogIn className="w-4 h-4 mr-1.5" />
+                  Log In
+                </Link>
+                <Link
+                  href="/auth/register"
+                  className="flex items-center px-4 py-2 bg-gradient-to-r from-violet-600 to-pink-600 text-white rounded-full font-medium text-sm hover:shadow-lg transition-all duration-300"
+                >
+                  <UserPlus className="w-4 h-4 mr-1.5" />
+                  Sign Up
+                </Link>
               </div>
             </div>
           </div>
@@ -147,52 +134,33 @@ function LandingPageContent() {
 
             <p className="text-lg sm:text-xl text-gray-200 dark:text-gray-300 mb-8 max-w-2xl mx-auto px-4">
               Experience deep emotional connection with an AI that truly understands you. 
-              {session ? "Continue your journey with your AI companion." : "Take our personality test and meet your perfect companion."}
+              Take our personality test and meet your perfect companion.
             </p>
 
-            {session ? (
-              <>
-                <motion.button
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                  onClick={() => router.push("/dashboard/chat")}
-                  className="px-6 sm:px-8 py-3 sm:py-4 bg-gradient-to-r from-violet-600 to-pink-600 text-white rounded-full font-semibold text-base sm:text-lg shadow-lg hover:shadow-xl transition-all duration-300"
-                  aria-label="Continue to chat"
-                >
-                  Continue Chatting
-                </motion.button>
-                <p className="mt-4 text-sm text-gray-300 dark:text-gray-400">
-                  Welcome back, {session.user?.name || session.user?.email}
-                </p>
-              </>
-            ) : (
-              <>
-                <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
-                  <motion.button
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
-                    onClick={() => router.push("/onboarding/personality-test")}
-                    className="px-6 sm:px-8 py-3 sm:py-4 bg-gradient-to-r from-violet-600 to-pink-600 text-white rounded-full font-semibold text-base sm:text-lg shadow-lg hover:shadow-xl transition-all duration-300"
-                    aria-label="Start personality test to find your AI companion"
-                  >
-                    Start Your Journey
-                  </motion.button>
-                  
-                  <span className="text-gray-400">or</span>
-                  
-                  <Link
-                    href="/auth/login"
-                    className="px-6 sm:px-8 py-3 sm:py-4 bg-gray-800 hover:bg-gray-700 text-white rounded-full font-semibold text-base sm:text-lg transition-all duration-300"
-                  >
-                    Log In to Continue
-                  </Link>
-                </div>
-                
-                <p className="mt-4 text-sm text-gray-300 dark:text-gray-400">
-                  No credit card required • 3-minute personality test
-                </p>
-              </>
-            )}
+            <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
+              <motion.button
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={() => router.push("/onboarding/personality-test")}
+                className="px-6 sm:px-8 py-3 sm:py-4 bg-gradient-to-r from-violet-600 to-pink-600 text-white rounded-full font-semibold text-base sm:text-lg shadow-lg hover:shadow-xl transition-all duration-300"
+                aria-label="Start personality test to find your AI companion"
+              >
+                Start Your Journey
+              </motion.button>
+              
+              <span className="text-gray-400">or</span>
+              
+              <Link
+                href="/auth/login"
+                className="px-6 sm:px-8 py-3 sm:py-4 bg-gray-800 hover:bg-gray-700 text-white rounded-full font-semibold text-base sm:text-lg transition-all duration-300"
+              >
+                Log In to Continue
+              </Link>
+            </div>
+            
+            <p className="mt-4 text-sm text-gray-300 dark:text-gray-400">
+              No credit card required • 3-minute personality test
+            </p>
           </motion.div>
         </section>
 
