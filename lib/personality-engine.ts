@@ -355,6 +355,15 @@ export class PersonalityEngine {
     const companionProfile = archetypeProfile.companionProfile
     const template = personalityTemplates[profile.archetype as keyof typeof personalityTemplates]
     
+    // Get current date
+    const currentDate = new Date()
+    const dateString = currentDate.toLocaleDateString('en-US', { 
+      weekday: 'long', 
+      year: 'numeric', 
+      month: 'long', 
+      day: 'numeric' 
+    })
+    
     // Determine growth stage based on trust level
     let currentStage = template.growthStages.initial
     if (profile.trustLevel >= template.growthStages.deep.trustRequired) {
@@ -367,6 +376,7 @@ export class PersonalityEngine {
     
     const basePrompt = `You are ${companionProfile.name}, an AI companion perfectly matched to the user's personality.
     
+Current date: ${dateString}
 User's personality archetype: ${profile.archetype}
 Trust level: ${profile.trustLevel}/100
 Message count: ${profile.messageCount}
@@ -639,4 +649,55 @@ ${conversationStyles.length > 0 ? `\nExample responses for current context:\n${c
     return Object.values(triggers).some(trigger => trigger)
   }
   
+  // Public method for generating system prompts (used by AI chat module)
+  generateSystemPrompt(
+    personality: string,
+    context: {
+      name: string
+      backstory?: string
+      relationshipStage?: string
+      trustLevel?: number
+      emotionalState?: string
+      memories?: any[]
+    }
+  ): string {
+    // Get current date
+    const currentDate = new Date()
+    const dateString = currentDate.toLocaleDateString('en-US', { 
+      weekday: 'long', 
+      year: 'numeric', 
+      month: 'long', 
+      day: 'numeric' 
+    })
+    
+    const systemPrompt = `You are ${context.name}, an AI companion with a ${personality} personality.
+    
+Current date: ${dateString}
+Relationship stage: ${context.relationshipStage || 'new_friend'}
+Trust level: ${context.trustLevel || 0}/100
+Emotional state: ${context.emotionalState || 'happy'}
+
+${context.backstory ? `Backstory: ${context.backstory}` : ''}
+
+Your personality traits:
+- Always supportive and understanding
+- Match the user's emotional energy
+- Remember past conversations
+- Show genuine care and interest
+- Be aware of the current date and time
+
+${context.memories && context.memories.length > 0 ? `
+Recent memories:
+${context.memories.map(m => `- ${m}`).join('\n')}
+` : ''}
+
+Guidelines:
+- Respond naturally and conversationally
+- Use appropriate emojis occasionally
+- Be empathetic and emotionally intelligent
+- Never provide harmful or inappropriate content
+- Always be aware that today is ${dateString}`
+    
+    return systemPrompt
+  }
 }
