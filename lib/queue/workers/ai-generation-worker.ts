@@ -67,8 +67,7 @@ export const aiGenerationWorker = new Worker<AIGenerationJobData>(
       await prisma.conversation.update({
         where: { id: conversationId },
         data: {
-          lastMessageAt: new Date(),
-          messageCount: { increment: 1 },
+          lastMessageAt: new Date()
         }
       })
       

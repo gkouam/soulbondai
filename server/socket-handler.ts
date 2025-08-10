@@ -77,7 +77,7 @@ export function initializeSocketServer(httpServer: HTTPServer) {
       // Update user's last active time
       await prisma.profile.update({
         where: { userId },
-        data: { lastActiveAt: new Date() }
+        data: { lastInteraction: new Date() }
       }).catch(console.error)
     })
 

@@ -160,8 +160,10 @@ io.on("connection", async (socket) => {
           conversationId,
           role: "assistant",
           content: response.content,
-          sentiment: response.sentiment,
-          responseTime: Math.round(response.suggestedDelay)
+          metadata: {
+            sentiment: response.sentiment,
+            responseTime: Math.round(response.suggestedDelay)
+          }
         }
       })
 
@@ -169,9 +171,8 @@ io.on("connection", async (socket) => {
       await prisma.profile.update({
         where: { id: profile.id },
         data: {
-          messageCount: { increment: 1 },
-          messagesUsedToday: { increment: 1 },
-          lastActiveAt: new Date(),
+          interactionCount: { increment: 1 },
+          lastInteraction: new Date(),
           trustLevel: Math.min(100, profile.trustLevel + 0.5)
         }
       })
