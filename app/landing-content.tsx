@@ -82,32 +82,32 @@ function LandingPageContent() {
       {/* Content */}
       <div className="relative z-10">
         {/* Header with Login/Signup */}
-        <header className="fixed top-0 left-0 right-0 z-50 bg-gray-950/80 backdrop-blur-sm border-b border-gray-800">
-          <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="flex items-center justify-between py-4 sm:py-6">
+        <header className="fixed top-0 left-0 right-0 z-50 bg-gray-950/90 backdrop-blur-md border-b border-gray-800">
+          <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="flex items-center justify-between py-3 sm:py-4">
               {/* Logo */}
               <Link href="/" className="flex items-center space-x-2">
                 <div className="w-8 h-8 bg-gradient-to-br from-purple-600 to-pink-600 rounded-lg flex items-center justify-center">
                   <span className="text-white font-bold text-sm">S</span>
                 </div>
-                <span className="text-xl font-bold text-white">SoulBond</span>
+                <span className="hidden sm:block text-xl font-bold text-white">SoulBond</span>
               </Link>
               
               {/* Auth Buttons */}
-              <div className="flex items-center space-x-3">
+              <div className="flex items-center gap-2 sm:gap-3">
                 <Link
                   href="/auth/login"
-                  className="flex items-center px-4 py-2 text-white hover:text-violet-300 font-medium text-sm transition-colors"
+                  className="flex items-center px-3 sm:px-4 py-2 text-white hover:text-violet-300 font-medium text-sm sm:text-base transition-colors"
                 >
-                  <LogIn className="w-4 h-4 mr-1.5" />
-                  Log In
+                  <LogIn className="w-4 h-4 mr-1 sm:mr-1.5" />
+                  <span>Log In</span>
                 </Link>
                 <Link
                   href="/auth/register"
-                  className="flex items-center px-4 py-2 bg-gradient-to-r from-violet-600 to-pink-600 text-white rounded-full font-medium text-sm hover:shadow-lg transition-all duration-300"
+                  className="flex items-center px-3 sm:px-4 py-2 bg-gradient-to-r from-violet-600 to-pink-600 text-white rounded-full font-medium text-sm sm:text-base hover:shadow-lg transition-all duration-300"
                 >
-                  <UserPlus className="w-4 h-4 mr-1.5" />
-                  Sign Up
+                  <UserPlus className="w-4 h-4 mr-1 sm:mr-1.5" />
+                  <span>Sign Up</span>
                 </Link>
               </div>
             </div>
