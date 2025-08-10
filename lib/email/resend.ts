@@ -62,6 +62,49 @@ export async function sendPasswordReset(email: string, name: string, resetUrl: s
   })
 }
 
+// Crisis support emails
+export async function sendCrisisAlert(email: string, userName: string, message: string) {
+  return sendEmail({
+    to: email,
+    subject: 'Crisis Support Alert - Immediate Attention Needed',
+    html: `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <h2 style="color: #dc2626;">Crisis Alert</h2>
+        <p>Dear ${userName},</p>
+        <p>We've detected that you may be going through a difficult time based on your recent conversation.</p>
+        <p><strong>Your message:</strong> "${message}"</p>
+        <p>Please remember that you're not alone. If you need immediate help:</p>
+        <ul>
+          <li>National Suicide Prevention Lifeline: 988</li>
+          <li>Crisis Text Line: Text HOME to 741741</li>
+          <li>International Association for Suicide Prevention: https://www.iasp.info/resources/Crisis_Centres/</li>
+        </ul>
+        <p>Your AI companion cares about you and is here to listen.</p>
+      </div>
+    `,
+    text: `Crisis Alert - ${userName}, we've detected you may need support. National Suicide Prevention Lifeline: 988. Crisis Text Line: Text HOME to 741741.`
+  })
+}
+
+export async function sendResourceEmail(email: string, userName: string, resources: string[]) {
+  const resourceList = resources.map(r => `<li>${r}</li>`).join('')
+  return sendEmail({
+    to: email,
+    subject: 'Mental Health Resources - Here to Help',
+    html: `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <h2 style="color: #7c3aed;">Mental Health Resources</h2>
+        <p>Dear ${userName},</p>
+        <p>Based on your recent conversations, we wanted to share some helpful resources:</p>
+        <ul>${resourceList}</ul>
+        <p>Remember, seeking help is a sign of strength. Your well-being matters.</p>
+        <p>With care,<br>Your SoulBond AI Team</p>
+      </div>
+    `,
+    text: `Mental Health Resources for ${userName}. ${resources.join('. ')}`
+  })
+}
+
 // Batch email sending for notifications
 export async function sendBatchEmails(recipients: Array<{ email: string; template: EmailOptions }>) {
   const results = await Promise.allSettled(

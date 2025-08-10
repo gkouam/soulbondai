@@ -3,7 +3,8 @@ import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
 import { AuditLogger, AuditAction } from "@/lib/audit-logger"
-import { userCache } from "@/lib/cache/redis-cache"
+// Redis cache disabled for now
+// import { userCache } from "@/lib/cache/redis-cache"
 
 export async function GET(req: Request) {
   try {
@@ -13,13 +14,12 @@ export async function GET(req: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
     
-    // Try to get from cache first
-    const cacheKey = `profile:${session.user.id}`
-    const cached = await userCache.get(cacheKey)
-    
-    if (cached) {
-      return NextResponse.json(cached)
-    }
+    // Cache disabled for production
+    // const cacheKey = `profile:${session.user.id}`
+    // const cached = await userCache.get(cacheKey)
+    // if (cached) {
+    //   return NextResponse.json(cached)
+    // }
     
     const profile = await prisma.profile.findUnique({
       where: { userId: session.user.id },
@@ -53,8 +53,8 @@ export async function GET(req: Request) {
       }
     }
     
-    // Cache the profile data
-    await userCache.set(cacheKey, profileData, 300) // Cache for 5 minutes
+    // Cache disabled for production
+    // await userCache.set(cacheKey, profileData, 300) // Cache for 5 minutes
     
     return NextResponse.json(profileData)
     
@@ -88,9 +88,9 @@ export async function PATCH(req: Request) {
       }
     })
     
-    // Invalidate cache
-    const cacheKey = `profile:${session.user.id}`
-    await userCache.delete(cacheKey)
+    // Cache disabled for production
+    // const cacheKey = `profile:${session.user.id}`
+    // await userCache.delete(cacheKey)
     
     // Log profile update
     await AuditLogger.log({

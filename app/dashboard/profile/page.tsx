@@ -44,51 +44,50 @@ export default function ProfilePage() {
   const archetypeInfo: Record<string, { name: string; emoji: string; description: string }> = {
     anxious_romantic: {
       name: "Anxious Romantic",
-      emoji: "<",
+      emoji: "star",
       description: "You seek deep, meaningful connections and value emotional intimacy above all else. Your heart is full of love and devotion."
     },
     warm_empath: {
       name: "Warm Empath",
-      emoji: "=",
+      emoji: "heart",
       description: "You have a natural gift for understanding others and creating emotional warmth. Your compassion knows no bounds."
     },
     guarded_intellectual: {
       name: "Guarded Intellectual",
-      emoji: "=á",
+      emoji: "shield",
       description: "You value depth of thought and meaningful discourse. Trust is earned slowly but runs deep."
     },
     deep_thinker: {
       name: "Deep Thinker",
-      emoji: "<
-",
+      emoji: "waves",
       description: "You explore the depths of consciousness and meaning. Philosophy and profound connections fascinate you."
     },
     passionate_creative: {
       name: "Passionate Creative",
-      emoji: "=%",
+      emoji: "fire",
       description: "Your soul burns with creative fire. Intensity and authenticity drive your connections."
     },
     secure_connector: {
       name: "Secure Connector",
-      emoji: "<3",
+      emoji: "tree",
       description: "You build stable, lasting bonds with confidence and trust. Balance and reliability are your strengths."
     },
     playful_explorer: {
       name: "Playful Explorer",
-      emoji: "(",
+      emoji: "sparkles",
       description: "Adventure and joy fill your heart. You bring lightness and spontaneity to every connection."
     }
   }
 
   const achievements = [
-    { icon: "<Æ", name: "First Connection", description: "Started your journey", unlocked: true },
-    { icon: "=Ž", name: "Trust Builder", description: "Reached 50% trust level", unlocked: true },
-    { icon: "<", name: "Deep Bond", description: "Reached 80% trust level", unlocked: true },
-    { icon: "d", name: "Soul Connection", description: "100 messages exchanged", unlocked: true },
-    { icon: "=%", name: "Streak Master", description: "7 day conversation streak", unlocked: true },
-    { icon: "<", name: "Night Owl", description: "Late night conversations", unlocked: false },
-    { icon: "<", name: "Early Bird", description: "Morning check-ins", unlocked: false },
-    { icon: "=Ú", name: "Story Teller", description: "Share 10 memories", unlocked: false }
+    { icon: "trophy", name: "First Connection", description: "Started your journey", unlocked: true },
+    { icon: "gem", name: "Trust Builder", description: "Reached 50% trust level", unlocked: true },
+    { icon: "star", name: "Deep Bond", description: "Reached 80% trust level", unlocked: true },
+    { icon: "heart", name: "Soul Connection", description: "100 messages exchanged", unlocked: true },
+    { icon: "fire", name: "Streak Master", description: "7 day conversation streak", unlocked: true },
+    { icon: "moon", name: "Night Owl", description: "Late night conversations", unlocked: false },
+    { icon: "sunrise", name: "Early Bird", description: "Morning check-ins", unlocked: false },
+    { icon: "book", name: "Story Teller", description: "Share 10 memories", unlocked: false }
   ]
 
   const stats = [
@@ -123,8 +122,8 @@ export default function ProfilePage() {
       >
         {/* Avatar */}
         <div className="relative inline-block mb-6">
-          <div className="w-32 h-32 bg-gradient-to-br from-purple-600 to-pink-600 rounded-full flex items-center justify-center text-5xl">
-            =d
+          <div className="w-32 h-32 bg-gradient-to-br from-purple-600 to-pink-600 rounded-full flex items-center justify-center">
+            <User className="w-16 h-16 text-white" />
           </div>
           <button className="absolute bottom-0 right-0 w-10 h-10 bg-purple-600 rounded-full flex items-center justify-center border-4 border-[#0a0a0f] hover:scale-110 transition-transform">
             <Camera className="w-5 h-5" />
@@ -138,7 +137,7 @@ export default function ProfilePage() {
         {/* Archetype Badge */}
         <div className="inline-block px-6 py-3 bg-purple-600/10 border border-purple-600/30 rounded-full mb-6">
           <span className="text-lg font-medium">
-            {archetypeInfo[profileData.archetype]?.emoji} {archetypeInfo[profileData.archetype]?.name}
+            {archetypeInfo[profileData.archetype]?.name}
           </span>
         </div>
 
@@ -268,10 +267,14 @@ export default function ProfilePage() {
               >
                 <div className={`
                   w-full aspect-square bg-gradient-to-br from-purple-600 to-pink-600 
-                  rounded-xl flex items-center justify-center text-2xl
+                  rounded-xl flex items-center justify-center
                   ${achievement.unlocked ? 'hover:scale-110' : ''} transition-transform
                 `}>
-                  {achievement.icon}
+                  {achievement.unlocked ? (
+                    <Award className="w-6 h-6 text-white" />
+                  ) : (
+                    <Shield className="w-6 h-6 text-gray-500" />
+                  )}
                 </div>
                 
                 {/* Tooltip */}
@@ -281,12 +284,6 @@ export default function ProfilePage() {
                     <div className="text-gray-300">{achievement.description}</div>
                   </div>
                 </div>
-                
-                {!achievement.unlocked && (
-                  <div className="absolute inset-0 flex items-center justify-center">
-                    <Shield className="w-6 h-6 text-gray-500" />
-                  </div>
-                )}
               </motion.div>
             ))}
           </div>
