@@ -7,6 +7,7 @@ import { PersonalityEngine } from "@/lib/personality-engine"
 import { cache } from "@/lib/redis"
 import { upgradeTriggerManager } from "@/lib/upgrade-triggers"
 import { withChatRateLimit } from "@/lib/rate-limiter"
+import { pusherServer, getUserChannel, isPusherConfigured } from "@/lib/pusher"
 import crypto from "crypto"
 
 const messageSchema = z.object({
@@ -129,6 +130,17 @@ export async function POST(req: Request) {
       history
     )
     
+    // Trigger typing indicator via Pusher (if configured)
+    if (isPusherConfigured && pusherServer) {
+      const userChannel = getUserChannel(session.user.id)
+      await pusherServer.trigger(userChannel, 'companion-typing', {
+        duration: Math.min(response.suggestedDelay * 1000, 3000)
+      })
+    }
+
+    // Simulate typing delay
+    await new Promise(resolve => setTimeout(resolve, Math.min(response.suggestedDelay * 1000, 3000)))
+
     // Save AI response
     const aiMessage = await prisma.message.create({
       data: {
@@ -139,6 +151,18 @@ export async function POST(req: Request) {
         responseTime: Math.round(response.suggestedDelay)
       }
     })
+
+    // Send AI message via Pusher (if configured)
+    if (isPusherConfigured && pusherServer) {
+      const userChannel = getUserChannel(session.user.id)
+      await pusherServer.trigger(userChannel, 'message-received', {
+        id: aiMessage.id,
+        role: aiMessage.role,
+        content: aiMessage.content,
+        createdAt: aiMessage.createdAt,
+        sentiment: response.sentiment
+      })
+    }
     
     // Update user metrics (trust is now handled by PersonalityEngine)
     await prisma.profile.update({

@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from "react"
 import { useSession } from "next-auth/react"
 import { motion, AnimatePresence } from "framer-motion"
 import { Send, Smile, Heart, Sparkles, Volume2, VolumeX, Image as ImageIcon } from "lucide-react"
-import { useSocket } from "@/hooks/use-socket"
+import { usePusher } from "@/hooks/use-pusher"
 import { Message } from "@/components/message"
 import { TypingIndicator } from "@/components/typing-indicator"
 import { MessageLimitWarning } from "@/components/message-limit-warning"
@@ -19,7 +19,7 @@ import { useOffline } from "@/hooks/use-offline"
 
 export default function ChatPage() {
   const { data: session, status } = useSession()
-  const { socket, isConnected } = useSocket()
+  const { channel, isConnected } = usePusher()
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
   
@@ -103,30 +103,37 @@ export default function ChatPage() {
     }
   }, [session])
   
-  // Socket listeners
+  // Pusher listeners
   useEffect(() => {
-    if (!socket) return
+    if (!channel) return
     
-    socket.on("message:receive", (message: any) => {
+    channel.bind("message-received", (message: any) => {
       setMessages(prev => [...prev, message])
       setIsTyping(false)
+      
+      // Update companion mood based on sentiment
+      if (message.sentiment?.primaryEmotion) {
+        const emotionToMood: Record<string, string> = {
+          joy: "happy",
+          love: "happy",
+          sadness: "sad",
+          anger: "upset",
+          fear: "worried"
+        }
+        setCompanionMood(emotionToMood[message.sentiment.primaryEmotion] || "happy")
+      }
     })
     
-    socket.on("companion:typing", ({ duration }: { duration: number }) => {
+    channel.bind("companion-typing", ({ duration }: { duration: number }) => {
       setIsTyping(true)
       setTimeout(() => setIsTyping(false), duration)
     })
     
-    socket.on("companion:mood", ({ mood }: { mood: string }) => {
-      setCompanionMood(mood)
-    })
-    
     return () => {
-      socket.off("message:receive")
-      socket.off("companion:typing")
-      socket.off("companion:mood")
+      channel.unbind("message-received")
+      channel.unbind("companion-typing")
     }
-  }, [socket])
+  }, [channel])
   
   // Auto scroll to bottom
   useEffect(() => {
@@ -178,20 +185,18 @@ export default function ChatPage() {
       return
     }
     
-    // Send via API if socket not available
-    if (!isConnected) {
-      try {
-        const res = await fetch("/api/chat/message", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ content: input })
-        })
-        
-        if (res.ok) {
-          const data = await res.json()
-          if (data.response) {
-            setMessages(prev => [...prev, data.response])
-          }
+    // Always use API (Pusher will handle real-time updates)
+    try {
+      const res = await fetch("/api/chat/message", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ content: input })
+      })
+      
+      if (res.ok) {
+        const data = await res.json()
+        // Don't add message here - Pusher will deliver it
+        // Just handle other updates
           
           // Handle trust updates and milestones
           if (data.trustUpdate) {
@@ -213,17 +218,24 @@ export default function ChatPage() {
             }
           }
           
-          // Handle upgrade prompts
-          if (data.upgradePrompt) {
-            setUpgradePrompt(data.upgradePrompt)
-          }
+        // Handle upgrade prompts
+        if (data.upgradePrompt) {
+          setUpgradePrompt(data.upgradePrompt)
         }
-      } catch (error) {
-        console.error("Failed to send message:", error)
+      } else {
+        toast({
+          type: "error",
+          title: "Failed to send message",
+          description: "Please try again"
+        })
       }
-    } else {
-      // Send via socket
-      socket.emit("message:send", { content: input })
+    } catch (error) {
+      console.error("Failed to send message:", error)
+      toast({
+        type: "error",
+        title: "Connection error",
+        description: "Please check your internet connection"
+      })
     }
   }
   

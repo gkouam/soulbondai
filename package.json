@@ -55,6 +55,8 @@
     "openai": "^5.11.0",
     "pg": "^8.16.3",
     "prisma": "^6.13.0",
+    "pusher": "^5.2.0",
+    "pusher-js": "^8.4.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "react-hook-form": "^7.62.0",
