@@ -81,6 +81,7 @@ export const authOptions: NextAuthOptions = {
         session.user.name = token.name
         session.user.email = token.email
         session.user.image = token.picture
+        session.user.role = token.role || 'USER'
 
         // Get user's subscription status
         const subscription = await prisma.subscription.findUnique({
@@ -109,6 +110,12 @@ export const authOptions: NextAuthOptions = {
     async jwt({ token, user }) {
       if (user) {
         token.id = user.id
+        // Fetch and store user role in token
+        const dbUser = await prisma.user.findUnique({
+          where: { id: user.id },
+          select: { role: true }
+        })
+        token.role = dbUser?.role || 'USER'
       }
 
       return token
