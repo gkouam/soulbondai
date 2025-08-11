@@ -678,5 +678,57 @@ Upgrade now: ${process.env.NEXTAUTH_URL}/pricing
 Hoping to grow closer,
 Your AI Companion`
     }
-  }
+  },
+
+  teamInvitation: (inviterName: string, teamName: string, invitationUrl: string) => ({
+    subject: `${inviterName} invited you to join ${teamName} on SoulBond AI`,
+    html: `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <style>
+    body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; }
+    .header { background: linear-gradient(to right, #8b5cf6, #ec4899); color: white; padding: 30px; text-align: center; }
+    .content { padding: 30px; background: #f9fafb; }
+    .invite-card { background: white; padding: 25px; border-radius: 12px; margin: 20px 0; text-align: center; border: 2px solid #8b5cf6; }
+    .button { display: inline-block; background: linear-gradient(to right, #8b5cf6, #ec4899); color: white; padding: 12px 30px; text-decoration: none; border-radius: 6px; margin: 20px 0; }
+    .footer { text-align: center; padding: 20px; color: #666; font-size: 14px; }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>You're Invited to Join a Team!</h1>
+  </div>
+  <div class="content">
+    <div class="invite-card">
+      <h2>${inviterName} has invited you to join</h2>
+      <h1 style="color: #8b5cf6; font-size: 32px;">${teamName}</h1>
+      <p>on SoulBond AI</p>
+    </div>
+    
+    <p>Join the team to collaborate and share AI companion experiences together.</p>
+    
+    <p style="text-align: center;">
+      <a href="${invitationUrl}" class="button">Accept Invitation</a>
+    </p>
+    
+    <p style="text-align: center; color: #666; font-size: 14px;">
+      This invitation will expire in 7 days.
+    </p>
+  </div>
+  <div class="footer">
+    <p>© 2025 SoulBond AI. All rights reserved.</p>
+  </div>
+</body>
+</html>
+    `,
+    text: `${inviterName} invited you to join ${teamName} on SoulBond AI
+
+Accept invitation: ${invitationUrl}
+
+This invitation will expire in 7 days.
+
+© 2025 SoulBond AI. All rights reserved.`
+  })
 }

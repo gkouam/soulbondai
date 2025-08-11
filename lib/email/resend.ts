@@ -105,6 +105,14 @@ export async function sendResourceEmail(email: string, userName: string, resourc
   })
 }
 
+export async function sendTeamInvitation(email: string, inviterName: string, teamName: string, invitationUrl: string) {
+  const template = emailTemplates.teamInvitation(inviterName, teamName, invitationUrl)
+  return sendEmail({
+    to: email,
+    ...template
+  })
+}
+
 // Batch email sending for notifications
 export async function sendBatchEmails(recipients: Array<{ email: string; template: EmailOptions }>) {
   const results = await Promise.allSettled(

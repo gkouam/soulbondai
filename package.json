@@ -44,6 +44,7 @@
     "bullmq": "^5.56.9",
     "canvas-confetti": "^1.9.3",
     "class-variance-authority": "^0.7.1",
+    "cloudinary": "^2.7.0",
     "clsx": "^2.1.1",
     "date-fns": "^4.1.0",
     "framer-motion": "^12.23.12",
