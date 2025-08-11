@@ -1,24 +1,16 @@
 "use client"
 
-import { useState, useEffect } from "react"
-import { useSession } from "next-auth/react"
-import { redirect } from "next/navigation"
-import { motion } from "framer-motion"
+import { useEffect, useState } from "react"
 import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card"
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+  BarChart3,
+  TrendingUp,
+  Users,
+  MessageSquare,
+  DollarSign,
+  Calendar,
+  Download,
+  Filter
+} from "lucide-react"
 import {
   LineChart,
   Line,
@@ -34,664 +26,354 @@ import {
   Legend,
   ResponsiveContainer,
   Area,
-  AreaChart,
+  AreaChart
 } from "recharts"
-import {
-  Users,
-  MessageSquare,
-  DollarSign,
-  TrendingUp,
-  Brain,
-  Heart,
-  AlertTriangle,
-  Activity,
-  Shield,
-  Zap,
-} from "lucide-react"
 
 interface AnalyticsData {
-  overview: {
-    totalUsers: number
-    activeUsers: number
-    totalRevenue: number
-    avgSessionTime: number
-    conversionRate: number
-    churnRate: number
+  userGrowth: Array<{ date: string; users: number; active: number }>
+  revenueGrowth: Array<{ date: string; revenue: number; mrr: number }>
+  messageActivity: Array<{ date: string; messages: number; avgResponseTime: number }>
+  archetypeDistribution: Array<{ archetype: string; count: number; percentage: number }>
+  conversionFunnel: Array<{ stage: string; users: number; rate: number }>
+  topFeatures: Array<{ feature: string; usage: number }>
+  churnAnalysis: {
+    monthly: number
+    reasons: Array<{ reason: string; count: number }>
   }
-  userGrowth: Array<{
-    date: string
-    newUsers: number
-    activeUsers: number
-  }>
-  revenueMetrics: Array<{
-    date: string
-    revenue: number
-    subscriptions: number
-    churn: number
-  }>
-  personalityDistribution: Array<{
-    archetype: string
-    count: number
-    percentage: number
-    avgTrust: number
-    conversionRate: number
-  }>
-  engagementMetrics: {
-    avgMessagesPerDay: number
-    avgSessionLength: number
-    retentionRate: {
-      day1: number
-      day7: number
-      day30: number
-    }
-    featureUsage: Array<{
-      feature: string
-      usage: number
-    }>
-  }
-  conversionFunnel: Array<{
-    stage: string
-    users: number
-    conversionRate: number
-  }>
-  crisisEvents: {
-    total: number
-    byType: Record<string, number>
-    bySeverity: Record<string, number>
-    resolved: number
+  engagement: {
+    dau: number
+    wau: number
+    mau: number
+    stickiness: number
   }
 }
 
-const COLORS = [
-  "#8b5cf6",
-  "#ec4899",
-  "#3b82f6",
-  "#10b981",
-  "#f59e0b",
-  "#ef4444",
-  "#6366f1",
-  "#14b8a6",
-]
+const COLORS = ['#8b5cf6', '#ec4899', '#10b981', '#f59e0b', '#3b82f6', '#ef4444']
 
-export default function AnalyticsDashboard() {
-  const { data: session, status } = useSession()
-  const [timeframe, setTimeframe] = useState<"day" | "week" | "month">("week")
-  const [loading, setLoading] = useState(true)
+export default function AdminAnalytics() {
   const [data, setData] = useState<AnalyticsData | null>(null)
-  const [selectedMetric, setSelectedMetric] = useState("overview")
+  const [loading, setLoading] = useState(true)
+  const [dateRange, setDateRange] = useState("30d")
+  const [selectedMetric, setSelectedMetric] = useState("all")
 
-  // Check if user is admin
-  useEffect(() => {
-    if (status === "loading") return
-    if (!session || session.user.role !== "ADMIN") {
-      redirect("/dashboard")
-    }
-  }, [session, status])
-
-  // Fetch analytics data
   useEffect(() => {
     fetchAnalytics()
-  }, [timeframe])
+  }, [dateRange])
 
   const fetchAnalytics = async () => {
     setLoading(true)
     try {
-      // Fetch different analytics endpoints
-      const [
-        overviewRes,
-        conversionRes,
-        personalityRes,
-        engagementRes,
-        crisisRes,
-      ] = await Promise.all([
-        fetch(`/api/admin/stats?timeframe=${timeframe}`),
-        fetch(`/api/analytics?type=conversion-metrics&timeframe=${timeframe}`),
-        fetch(`/api/analytics?type=personality-insights`),
-        fetch("/api/analytics?type=engagement-metrics"),
-        fetch(`/api/analytics?type=crisis-stats&timeframe=${timeframe}`),
-      ])
-
-      const overview = await overviewRes.json()
-      const conversion = await conversionRes.json()
-      const personality = await personalityRes.json()
-      const engagement = await engagementRes.json()
-      const crisis = await crisisRes.json()
-
-      // Combine all data
-      setData({
-        overview: overview.stats,
-        userGrowth: overview.userGrowth || generateMockGrowthData(),
-        revenueMetrics: overview.revenueMetrics || generateMockRevenueData(),
-        personalityDistribution: personality.insights || generateMockPersonalityData(),
-        engagementMetrics: engagement.metrics || generateMockEngagementData(),
-        conversionFunnel: conversion.funnel || generateMockFunnelData(),
-        crisisEvents: crisis.stats || { total: 0, byType: {}, bySeverity: {}, resolved: 0 },
-      })
+      const res = await fetch(`/api/admin/analytics?range=${dateRange}`)
+      if (res.ok) {
+        const analyticsData = await res.json()
+        setData(analyticsData)
+      } else {
+        // Use mock data for now
+        setData(generateMockAnalytics())
+      }
     } catch (error) {
       console.error("Failed to fetch analytics:", error)
-      // Use mock data as fallback
-      setData(generateMockAnalyticsData())
+      setData(generateMockAnalytics())
     } finally {
       setLoading(false)
     }
   }
 
+  const generateMockAnalytics = (): AnalyticsData => {
+    const days = parseInt(dateRange) || 30
+    const userGrowth = Array.from({ length: days }, (_, i) => ({
+      date: new Date(Date.now() - (days - i) * 24 * 60 * 60 * 1000).toLocaleDateString(),
+      users: Math.floor(100 + i * 10 + Math.random() * 20),
+      active: Math.floor(50 + i * 5 + Math.random() * 10)
+    }))
+
+    const revenueGrowth = Array.from({ length: days }, (_, i) => ({
+      date: new Date(Date.now() - (days - i) * 24 * 60 * 60 * 1000).toLocaleDateString(),
+      revenue: Math.floor(1000 + i * 50 + Math.random() * 100),
+      mrr: Math.floor(5000 + i * 100 + Math.random() * 200)
+    }))
+
+    const messageActivity = Array.from({ length: 7 }, (_, i) => ({
+      date: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'][i],
+      messages: Math.floor(500 + Math.random() * 500),
+      avgResponseTime: Math.floor(100 + Math.random() * 200)
+    }))
+
+    return {
+      userGrowth,
+      revenueGrowth,
+      messageActivity,
+      archetypeDistribution: [
+        { archetype: "Warm Empath", count: 245, percentage: 28 },
+        { archetype: "Anxious Romantic", count: 189, percentage: 22 },
+        { archetype: "Guarded Intellectual", count: 167, percentage: 19 },
+        { archetype: "Deep Thinker", count: 134, percentage: 15 },
+        { archetype: "Passionate Creative", count: 98, percentage: 11 },
+        { archetype: "Others", count: 45, percentage: 5 }
+      ],
+      conversionFunnel: [
+        { stage: "Visitors", users: 10000, rate: 100 },
+        { stage: "Sign Ups", users: 2500, rate: 25 },
+        { stage: "Personality Test", users: 1800, rate: 72 },
+        { stage: "First Message", users: 1200, rate: 67 },
+        { stage: "Paid Subscription", users: 450, rate: 38 }
+      ],
+      topFeatures: [
+        { feature: "Chat", usage: 8945 },
+        { feature: "Voice Messages", usage: 3421 },
+        { feature: "Photo Sharing", usage: 2103 },
+        { feature: "Personality Test", usage: 1876 },
+        { feature: "Settings", usage: 1234 }
+      ],
+      churnAnalysis: {
+        monthly: 5.2,
+        reasons: [
+          { reason: "Price", count: 45 },
+          { reason: "Features", count: 32 },
+          { reason: "Usage", count: 28 },
+          { reason: "Competition", count: 15 },
+          { reason: "Other", count: 10 }
+        ]
+      },
+      engagement: {
+        dau: 1250,
+        wau: 3400,
+        mau: 8900,
+        stickiness: 14.0
+      }
+    }
+  }
+
+  const exportData = () => {
+    if (!data) return
+    const csv = JSON.stringify(data, null, 2)
+    const blob = new Blob([csv], { type: 'application/json' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `analytics-${dateRange}-${Date.now()}.json`
+    a.click()
+  }
+
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-violet-500"></div>
+      <div className="flex items-center justify-center h-64">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600"></div>
       </div>
     )
   }
 
-  if (!data) {
-    return <div>No analytics data available</div>
-  }
-
   return (
-    <div className="container mx-auto p-6 space-y-6">
+    <div>
       {/* Header */}
-      <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-3xl font-bold">Analytics Dashboard</h1>
-          <p className="text-gray-600 dark:text-gray-400">
-            Monitor your platform's performance and user behavior
-          </p>
+      <div className="mb-8">
+        <div className="flex justify-between items-center">
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900">Analytics Dashboard</h1>
+            <p className="text-gray-500 mt-2">Comprehensive insights and metrics</p>
+          </div>
+          <div className="flex gap-4">
+            <select
+              value={dateRange}
+              onChange={(e) => setDateRange(e.target.value)}
+              className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+            >
+              <option value="7d">Last 7 days</option>
+              <option value="30d">Last 30 days</option>
+              <option value="90d">Last 90 days</option>
+              <option value="365d">Last year</option>
+            </select>
+            <button
+              onClick={exportData}
+              className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700"
+            >
+              <Download className="h-4 w-4" />
+              Export
+            </button>
+          </div>
         </div>
-        <Select value={timeframe} onValueChange={(value: any) => setTimeframe(value)}>
-          <SelectTrigger className="w-32">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="day">Last 24h</SelectItem>
-            <SelectItem value="week">Last 7 days</SelectItem>
-            <SelectItem value="month">Last 30 days</SelectItem>
-          </SelectContent>
-        </Select>
       </div>
 
-      {/* Overview Cards */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Users</CardTitle>
-            <Users className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              {data.overview.totalUsers.toLocaleString()}
-            </div>
-            <p className="text-xs text-muted-foreground">
-              +{Math.round(data.overview.totalUsers * 0.12)} from last period
-            </p>
-          </CardContent>
-        </Card>
+      {/* KPI Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+        <div className="bg-white rounded-lg shadow p-6">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-sm text-gray-500">DAU/MAU</span>
+            <TrendingUp className="h-4 w-4 text-green-500" />
+          </div>
+          <div className="text-2xl font-bold text-gray-900">
+            {data?.engagement.stickiness.toFixed(1)}%
+          </div>
+          <p className="text-xs text-gray-500 mt-1">Stickiness ratio</p>
+        </div>
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Active Users</CardTitle>
-            <Activity className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              {data.overview.activeUsers.toLocaleString()}
-            </div>
-            <p className="text-xs text-muted-foreground">
-              {((data.overview.activeUsers / data.overview.totalUsers) * 100).toFixed(1)}% of total
-            </p>
-          </CardContent>
-        </Card>
+        <div className="bg-white rounded-lg shadow p-6">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-sm text-gray-500">Churn Rate</span>
+            <TrendingUp className="h-4 w-4 text-red-500 rotate-180" />
+          </div>
+          <div className="text-2xl font-bold text-gray-900">
+            {data?.churnAnalysis.monthly}%
+          </div>
+          <p className="text-xs text-gray-500 mt-1">Monthly churn</p>
+        </div>
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Revenue</CardTitle>
-            <DollarSign className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              ${data.overview.totalRevenue.toLocaleString()}
-            </div>
-            <p className="text-xs text-muted-foreground">
-              +{data.overview.conversionRate.toFixed(1)}% conversion rate
-            </p>
-          </CardContent>
-        </Card>
+        <div className="bg-white rounded-lg shadow p-6">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-sm text-gray-500">Active Users</span>
+            <Users className="h-4 w-4 text-blue-500" />
+          </div>
+          <div className="text-2xl font-bold text-gray-900">
+            {data?.engagement.mau.toLocaleString()}
+          </div>
+          <p className="text-xs text-gray-500 mt-1">Monthly active</p>
+        </div>
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Avg Session</CardTitle>
-            <MessageSquare className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              {Math.round(data.overview.avgSessionTime)} min
-            </div>
-            <p className="text-xs text-muted-foreground">
-              {data.engagementMetrics.avgMessagesPerDay} msgs/day
-            </p>
-          </CardContent>
-        </Card>
+        <div className="bg-white rounded-lg shadow p-6">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-sm text-gray-500">Conversion</span>
+            <DollarSign className="h-4 w-4 text-green-500" />
+          </div>
+          <div className="text-2xl font-bold text-gray-900">
+            {data?.conversionFunnel[4].rate}%
+          </div>
+          <p className="text-xs text-gray-500 mt-1">Free to paid</p>
+        </div>
       </div>
 
-      {/* Main Analytics Tabs */}
-      <Tabs defaultValue="growth" className="space-y-4">
-        <TabsList className="grid w-full grid-cols-5">
-          <TabsTrigger value="growth">Growth</TabsTrigger>
-          <TabsTrigger value="revenue">Revenue</TabsTrigger>
-          <TabsTrigger value="personality">Personality</TabsTrigger>
-          <TabsTrigger value="engagement">Engagement</TabsTrigger>
-          <TabsTrigger value="safety">Safety</TabsTrigger>
-        </TabsList>
+      {/* Charts Grid */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+        {/* User Growth Chart */}
+        <div className="bg-white rounded-lg shadow p-6">
+          <h2 className="text-lg font-semibold text-gray-900 mb-4">User Growth</h2>
+          <ResponsiveContainer width="100%" height={300}>
+            <AreaChart data={data?.userGrowth}>
+              <CartesianGrid strokeDasharray="3 3" />
+              <XAxis dataKey="date" />
+              <YAxis />
+              <Tooltip />
+              <Legend />
+              <Area type="monotone" dataKey="users" stackId="1" stroke="#8b5cf6" fill="#8b5cf6" />
+              <Area type="monotone" dataKey="active" stackId="1" stroke="#ec4899" fill="#ec4899" />
+            </AreaChart>
+          </ResponsiveContainer>
+        </div>
 
-        {/* User Growth Tab */}
-        <TabsContent value="growth" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>User Growth Trend</CardTitle>
-              <CardDescription>New and active users over time</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <ResponsiveContainer width="100%" height={350}>
-                <AreaChart data={data.userGrowth}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="date" />
-                  <YAxis />
-                  <Tooltip />
-                  <Legend />
-                  <Area
-                    type="monotone"
-                    dataKey="activeUsers"
-                    stackId="1"
-                    stroke="#8b5cf6"
-                    fill="#8b5cf6"
-                    fillOpacity={0.6}
-                    name="Active Users"
-                  />
-                  <Area
-                    type="monotone"
-                    dataKey="newUsers"
-                    stackId="1"
-                    stroke="#ec4899"
-                    fill="#ec4899"
-                    fillOpacity={0.6}
-                    name="New Users"
-                  />
-                </AreaChart>
-              </ResponsiveContainer>
-            </CardContent>
-          </Card>
+        {/* Revenue Chart */}
+        <div className="bg-white rounded-lg shadow p-6">
+          <h2 className="text-lg font-semibold text-gray-900 mb-4">Revenue Growth</h2>
+          <ResponsiveContainer width="100%" height={300}>
+            <LineChart data={data?.revenueGrowth}>
+              <CartesianGrid strokeDasharray="3 3" />
+              <XAxis dataKey="date" />
+              <YAxis />
+              <Tooltip />
+              <Legend />
+              <Line type="monotone" dataKey="mrr" stroke="#10b981" strokeWidth={2} />
+              <Line type="monotone" dataKey="revenue" stroke="#f59e0b" strokeWidth={2} />
+            </LineChart>
+          </ResponsiveContainer>
+        </div>
 
-          <Card>
-            <CardHeader>
-              <CardTitle>Conversion Funnel</CardTitle>
-              <CardDescription>User journey from landing to subscription</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <ResponsiveContainer width="100%" height={350}>
-                <BarChart data={data.conversionFunnel} layout="horizontal">
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis type="number" />
-                  <YAxis dataKey="stage" type="category" />
-                  <Tooltip />
-                  <Bar dataKey="users" fill="#8b5cf6">
-                    {data.conversionFunnel.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                    ))}
-                  </Bar>
-                </BarChart>
-              </ResponsiveContainer>
-            </CardContent>
-          </Card>
-        </TabsContent>
+        {/* Archetype Distribution */}
+        <div className="bg-white rounded-lg shadow p-6">
+          <h2 className="text-lg font-semibold text-gray-900 mb-4">User Archetypes</h2>
+          <ResponsiveContainer width="100%" height={300}>
+            <PieChart>
+              <Pie
+                data={data?.archetypeDistribution}
+                cx="50%"
+                cy="50%"
+                labelLine={false}
+                label={(entry) => `${entry.archetype}: ${entry.percentage}%`}
+                outerRadius={80}
+                fill="#8884d8"
+                dataKey="count"
+              >
+                {data?.archetypeDistribution.map((entry, index) => (
+                  <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                ))}
+              </Pie>
+              <Tooltip />
+            </PieChart>
+          </ResponsiveContainer>
+        </div>
 
-        {/* Revenue Tab */}
-        <TabsContent value="revenue" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>Revenue Metrics</CardTitle>
-              <CardDescription>Revenue, subscriptions, and churn over time</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <ResponsiveContainer width="100%" height={350}>
-                <LineChart data={data.revenueMetrics}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="date" />
-                  <YAxis yAxisId="left" />
-                  <YAxis yAxisId="right" orientation="right" />
-                  <Tooltip />
-                  <Legend />
-                  <Line
-                    yAxisId="left"
-                    type="monotone"
-                    dataKey="revenue"
-                    stroke="#10b981"
-                    name="Revenue ($)"
-                  />
-                  <Line
-                    yAxisId="right"
-                    type="monotone"
-                    dataKey="subscriptions"
-                    stroke="#8b5cf6"
-                    name="New Subscriptions"
-                  />
-                  <Line
-                    yAxisId="right"
-                    type="monotone"
-                    dataKey="churn"
-                    stroke="#ef4444"
-                    name="Churn"
-                  />
-                </LineChart>
-              </ResponsiveContainer>
-            </CardContent>
-          </Card>
-        </TabsContent>
+        {/* Conversion Funnel */}
+        <div className="bg-white rounded-lg shadow p-6">
+          <h2 className="text-lg font-semibold text-gray-900 mb-4">Conversion Funnel</h2>
+          <ResponsiveContainer width="100%" height={300}>
+            <BarChart data={data?.conversionFunnel} layout="horizontal">
+              <CartesianGrid strokeDasharray="3 3" />
+              <XAxis type="number" />
+              <YAxis dataKey="stage" type="category" />
+              <Tooltip />
+              <Bar dataKey="users" fill="#8b5cf6" />
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+      </div>
 
-        {/* Personality Distribution Tab */}
-        <TabsContent value="personality" className="space-y-4">
-          <div className="grid gap-4 md:grid-cols-2">
-            <Card>
-              <CardHeader>
-                <CardTitle>Personality Distribution</CardTitle>
-                <CardDescription>User distribution by archetype</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <ResponsiveContainer width="100%" height={300}>
-                  <PieChart>
-                    <Pie
-                      data={data.personalityDistribution}
-                      cx="50%"
-                      cy="50%"
-                      labelLine={false}
-                      label={({ name, percentage }) => `${name}: ${percentage}%`}
-                      outerRadius={80}
-                      fill="#8884d8"
-                      dataKey="count"
-                    >
-                      {data.personalityDistribution.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                      ))}
-                    </Pie>
-                    <Tooltip />
-                  </PieChart>
-                </ResponsiveContainer>
-              </CardContent>
-            </Card>
+      {/* Additional Metrics */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Message Activity */}
+        <div className="bg-white rounded-lg shadow p-6">
+          <h2 className="text-lg font-semibold text-gray-900 mb-4">Weekly Activity</h2>
+          <ResponsiveContainer width="100%" height={200}>
+            <BarChart data={data?.messageActivity}>
+              <CartesianGrid strokeDasharray="3 3" />
+              <XAxis dataKey="date" />
+              <YAxis />
+              <Tooltip />
+              <Bar dataKey="messages" fill="#3b82f6" />
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
 
-            <Card>
-              <CardHeader>
-                <CardTitle>Archetype Performance</CardTitle>
-                <CardDescription>Conversion and trust by personality type</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <ResponsiveContainer width="100%" height={300}>
-                  <BarChart data={data.personalityDistribution}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="archetype" angle={-45} textAnchor="end" height={80} />
-                    <YAxis />
-                    <Tooltip />
-                    <Legend />
-                    <Bar dataKey="avgTrust" fill="#8b5cf6" name="Avg Trust" />
-                    <Bar dataKey="conversionRate" fill="#ec4899" name="Conversion %" />
-                  </BarChart>
-                </ResponsiveContainer>
-              </CardContent>
-            </Card>
-          </div>
-        </TabsContent>
-
-        {/* Engagement Tab */}
-        <TabsContent value="engagement" className="space-y-4">
-          <div className="grid gap-4 md:grid-cols-3">
-            <Card>
-              <CardHeader>
-                <CardTitle>Retention Rates</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  <div>
-                    <div className="flex justify-between">
-                      <span>Day 1</span>
-                      <span className="font-bold">
-                        {data.engagementMetrics.retentionRate.day1}%
-                      </span>
-                    </div>
-                    <div className="w-full bg-gray-200 rounded-full h-2">
-                      <div
-                        className="bg-violet-600 h-2 rounded-full"
-                        style={{ width: `${data.engagementMetrics.retentionRate.day1}%` }}
-                      />
-                    </div>
+        {/* Top Features */}
+        <div className="bg-white rounded-lg shadow p-6">
+          <h2 className="text-lg font-semibold text-gray-900 mb-4">Feature Usage</h2>
+          <div className="space-y-3">
+            {data?.topFeatures.map((feature, index) => (
+              <div key={index} className="flex items-center justify-between">
+                <span className="text-sm text-gray-600">{feature.feature}</span>
+                <div className="flex items-center gap-2">
+                  <div className="w-32 bg-gray-200 rounded-full h-2">
+                    <div
+                      className="bg-purple-600 h-2 rounded-full"
+                      style={{ width: `${(feature.usage / (data?.topFeatures[0].usage || 1)) * 100}%` }}
+                    />
                   </div>
-                  <div>
-                    <div className="flex justify-between">
-                      <span>Day 7</span>
-                      <span className="font-bold">
-                        {data.engagementMetrics.retentionRate.day7}%
-                      </span>
-                    </div>
-                    <div className="w-full bg-gray-200 rounded-full h-2">
-                      <div
-                        className="bg-violet-600 h-2 rounded-full"
-                        style={{ width: `${data.engagementMetrics.retentionRate.day7}%` }}
-                      />
-                    </div>
-                  </div>
-                  <div>
-                    <div className="flex justify-between">
-                      <span>Day 30</span>
-                      <span className="font-bold">
-                        {data.engagementMetrics.retentionRate.day30}%
-                      </span>
-                    </div>
-                    <div className="w-full bg-gray-200 rounded-full h-2">
-                      <div
-                        className="bg-violet-600 h-2 rounded-full"
-                        style={{ width: `${data.engagementMetrics.retentionRate.day30}%` }}
-                      />
-                    </div>
-                  </div>
+                  <span className="text-sm font-medium text-gray-900">
+                    {feature.usage.toLocaleString()}
+                  </span>
                 </div>
-              </CardContent>
-            </Card>
-
-            <Card className="col-span-2">
-              <CardHeader>
-                <CardTitle>Feature Usage</CardTitle>
-                <CardDescription>Most used features by users</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <ResponsiveContainer width="100%" height={200}>
-                  <BarChart data={data.engagementMetrics.featureUsage} layout="horizontal">
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis type="number" />
-                    <YAxis dataKey="feature" type="category" />
-                    <Tooltip />
-                    <Bar dataKey="usage" fill="#8b5cf6" />
-                  </BarChart>
-                </ResponsiveContainer>
-              </CardContent>
-            </Card>
+              </div>
+            ))}
           </div>
-        </TabsContent>
+        </div>
 
-        {/* Safety Tab */}
-        <TabsContent value="safety" className="space-y-4">
-          <div className="grid gap-4 md:grid-cols-2">
-            <Card>
-              <CardHeader>
-                <CardTitle>Crisis Events</CardTitle>
-                <CardDescription>Crisis detection and response metrics</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <span className="flex items-center gap-2">
-                      <AlertTriangle className="h-4 w-4 text-orange-500" />
-                      Total Events
-                    </span>
-                    <span className="font-bold">{data.crisisEvents.total}</span>
+        {/* Churn Reasons */}
+        <div className="bg-white rounded-lg shadow p-6">
+          <h2 className="text-lg font-semibold text-gray-900 mb-4">Churn Reasons</h2>
+          <div className="space-y-3">
+            {data?.churnAnalysis.reasons.map((reason, index) => (
+              <div key={index} className="flex items-center justify-between">
+                <span className="text-sm text-gray-600">{reason.reason}</span>
+                <div className="flex items-center gap-2">
+                  <div className="w-32 bg-gray-200 rounded-full h-2">
+                    <div
+                      className="bg-red-500 h-2 rounded-full"
+                      style={{ width: `${(reason.count / (data?.churnAnalysis.reasons[0].count || 1)) * 100}%` }}
+                    />
                   </div>
-                  <div className="flex items-center justify-between">
-                    <span className="flex items-center gap-2">
-                      <Shield className="h-4 w-4 text-green-500" />
-                      Resolved
-                    </span>
-                    <span className="font-bold">{data.crisisEvents.resolved}</span>
-                  </div>
-                  <div className="pt-4 border-t">
-                    <p className="text-sm font-medium mb-2">By Severity</p>
-                    {Object.entries(data.crisisEvents.bySeverity).map(([level, count]) => (
-                      <div key={level} className="flex justify-between text-sm">
-                        <span className="capitalize">{level}</span>
-                        <span>{count}</span>
-                      </div>
-                    ))}
-                  </div>
+                  <span className="text-sm font-medium text-gray-900">{reason.count}</span>
                 </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle>Crisis Types</CardTitle>
-                <CardDescription>Distribution of crisis events by type</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <ResponsiveContainer width="100%" height={250}>
-                  <PieChart>
-                    <Pie
-                      data={Object.entries(data.crisisEvents.byType).map(([type, count]) => ({
-                        name: type,
-                        value: count,
-                      }))}
-                      cx="50%"
-                      cy="50%"
-                      labelLine={false}
-                      label={({ name, value }) => `${name}: ${value}`}
-                      outerRadius={80}
-                      fill="#8884d8"
-                      dataKey="value"
-                    >
-                      {Object.entries(data.crisisEvents.byType).map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                      ))}
-                    </Pie>
-                    <Tooltip />
-                  </PieChart>
-                </ResponsiveContainer>
-              </CardContent>
-            </Card>
+              </div>
+            ))}
           </div>
-        </TabsContent>
-      </Tabs>
+        </div>
+      </div>
     </div>
   )
-}
-
-// Mock data generators for fallback
-function generateMockGrowthData() {
-  const days = 30
-  const data = []
-  const baseUsers = 10000
-  
-  for (let i = 0; i < days; i++) {
-    data.push({
-      date: new Date(Date.now() - (days - i) * 24 * 60 * 60 * 1000).toLocaleDateString(),
-      newUsers: Math.floor(Math.random() * 200) + 100,
-      activeUsers: Math.floor(baseUsers + i * 50 + Math.random() * 100),
-    })
-  }
-  
-  return data
-}
-
-function generateMockRevenueData() {
-  const days = 30
-  const data = []
-  
-  for (let i = 0; i < days; i++) {
-    data.push({
-      date: new Date(Date.now() - (days - i) * 24 * 60 * 60 * 1000).toLocaleDateString(),
-      revenue: Math.floor(Math.random() * 5000) + 2000,
-      subscriptions: Math.floor(Math.random() * 50) + 20,
-      churn: Math.floor(Math.random() * 10) + 5,
-    })
-  }
-  
-  return data
-}
-
-function generateMockPersonalityData() {
-  return [
-    { archetype: "Anxious Romantic", count: 3500, percentage: 35, avgTrust: 75, conversionRate: 42 },
-    { archetype: "Warm Empath", count: 2500, percentage: 25, avgTrust: 68, conversionRate: 38 },
-    { archetype: "Guarded Intellectual", count: 1500, percentage: 15, avgTrust: 52, conversionRate: 35 },
-    { archetype: "Deep Thinker", count: 1500, percentage: 15, avgTrust: 61, conversionRate: 37 },
-    { archetype: "Passionate Creative", count: 1000, percentage: 10, avgTrust: 71, conversionRate: 45 },
-  ]
-}
-
-function generateMockEngagementData() {
-  return {
-    avgMessagesPerDay: 45,
-    avgSessionLength: 23,
-    retentionRate: {
-      day1: 85,
-      day7: 65,
-      day30: 45,
-    },
-    featureUsage: [
-      { feature: "Text Chat", usage: 95 },
-      { feature: "Voice Messages", usage: 42 },
-      { feature: "Photo Sharing", usage: 35 },
-      { feature: "Personality Test", usage: 88 },
-      { feature: "Settings", usage: 25 },
-    ],
-  }
-}
-
-function generateMockFunnelData() {
-  return [
-    { stage: "Landing Page", users: 10000, conversionRate: 100 },
-    { stage: "Start Test", users: 4200, conversionRate: 42 },
-    { stage: "Complete Test", users: 3750, conversionRate: 89 },
-    { stage: "Registration", users: 3200, conversionRate: 85 },
-    { stage: "First Message", users: 2800, conversionRate: 87 },
-    { stage: "Subscription", users: 750, conversionRate: 27 },
-  ]
-}
-
-function generateMockAnalyticsData(): AnalyticsData {
-  return {
-    overview: {
-      totalUsers: 10000,
-      activeUsers: 6500,
-      totalRevenue: 85000,
-      avgSessionTime: 23,
-      conversionRate: 27,
-      churnRate: 5,
-    },
-    userGrowth: generateMockGrowthData(),
-    revenueMetrics: generateMockRevenueData(),
-    personalityDistribution: generateMockPersonalityData(),
-    engagementMetrics: generateMockEngagementData(),
-    conversionFunnel: generateMockFunnelData(),
-    crisisEvents: {
-      total: 45,
-      byType: {
-        suicide: 12,
-        self_harm: 8,
-        abuse: 5,
-        emotional: 20,
-      },
-      bySeverity: {
-        critical: 5,
-        high: 12,
-        moderate: 18,
-        low: 10,
-      },
-      resolved: 42,
-    },
-  }
 }
