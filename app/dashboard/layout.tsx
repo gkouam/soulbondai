@@ -6,7 +6,7 @@ import { usePathname } from "next/navigation"
 import { motion, AnimatePresence } from "framer-motion"
 import { 
   MessageSquare, Settings, CreditCard, User, LayoutDashboard,
-  Sparkles, LogOut, Menu, X
+  Sparkles, LogOut, Menu, X, Shield
 } from "lucide-react"
 import { signOut, useSession } from "next-auth/react"
 
@@ -27,6 +27,9 @@ export default function DashboardLayout({
   const pathname = usePathname()
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const { data: session } = useSession()
+  
+  // Check if user is admin
+  const isAdmin = session?.user?.role === 'ADMIN' || session?.user?.email === 'kouam7@gmail.com'
   
   return (
     <div className="min-h-screen bg-[#0a0a0f] text-white overflow-x-hidden">
@@ -66,6 +69,22 @@ export default function DashboardLayout({
               </Link>
             )
           })}
+          {isAdmin && (
+            <Link
+              href="/admin"
+              className={`
+                px-4 py-2 rounded-xl font-medium transition-all duration-300
+                flex items-center gap-2
+                ${pathname.startsWith('/admin')
+                  ? 'bg-gradient-to-r from-purple-600 to-pink-600 text-white shadow-lg shadow-purple-500/25' 
+                  : 'bg-white/5 hover:bg-white/10 text-gray-400 hover:text-white border border-white/10'
+                }
+              `}
+            >
+              <Shield className="w-4 h-4" />
+              <span>Admin</span>
+            </Link>
+          )}
           <button
             onClick={() => signOut({ callbackUrl: '/' })}
             className="px-4 py-2 rounded-xl font-medium transition-all duration-300 bg-white/5 hover:bg-red-500/20 text-gray-400 hover:text-red-400 border border-white/10 flex items-center gap-2"
@@ -126,6 +145,22 @@ export default function DashboardLayout({
                     </Link>
                   )
                 })}
+                {isAdmin && (
+                  <Link
+                    href="/admin"
+                    onClick={() => setMobileMenuOpen(false)}
+                    className={`
+                      flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-300
+                      ${pathname.startsWith('/admin')
+                        ? 'bg-gradient-to-r from-purple-600 to-pink-600 text-white' 
+                        : 'bg-white/5 text-gray-400 hover:bg-white/10 hover:text-white'
+                      }
+                    `}
+                  >
+                    <Shield className="w-5 h-5" />
+                    <span>Admin</span>
+                  </Link>
+                )}
               </nav>
               
               <div className="pt-6 border-t border-white/10">

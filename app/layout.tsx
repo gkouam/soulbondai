@@ -6,6 +6,7 @@ import { generateMetadata } from "@/lib/metadata";
 import { KeyboardShortcutsHelp } from "@/components/keyboard-shortcuts-help";
 import { SkipNavigation } from "@/components/skip-navigation";
 import { OfflineIndicator } from "@/components/offline-indicator";
+import Footer from "@/components/footer";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -38,7 +39,12 @@ export default function RootLayout({
         <SkipNavigation />
         <Providers>
           <OfflineIndicator />
-          {children}
+          <div className="min-h-screen flex flex-col">
+            <main className="flex-grow">
+              {children}
+            </main>
+            <Footer />
+          </div>
           <KeyboardShortcutsHelp />
         </Providers>
       </body>

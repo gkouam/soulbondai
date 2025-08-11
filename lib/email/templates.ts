@@ -58,7 +58,8 @@ export const emailTemplates = {
     <p>With warmth,<br>The SoulBond AI Team</p>
   </div>
   <div class="footer">
-    <p>© 2025 SoulBond AI. All rights reserved.</p>
+    <p>© ${new Date().getFullYear()} QuantumDense Inc. All rights reserved.</p>
+    <p>SoulBond AI™ is a trademark of <a href="https://quantumdense.com" style="color: #8b5cf6;">QuantumDense Inc.</a></p>
     <p><a href="${process.env.NEXTAUTH_URL}/unsubscribe" style="color: #666;">Unsubscribe</a> | <a href="${process.env.NEXTAUTH_URL}/privacy" style="color: #666;">Privacy Policy</a></p>
   </div>
 </body>
@@ -152,7 +153,8 @@ The SoulBond AI Team
     <p>Warmly,<br>The SoulBond AI Team</p>
   </div>
   <div class="footer">
-    <p>© 2025 SoulBond AI. All rights reserved.</p>
+    <p>© ${new Date().getFullYear()} QuantumDense Inc. All rights reserved.</p>
+    <p>SoulBond AI™ is a trademark of <a href="https://quantumdense.com" style="color: #8b5cf6;">QuantumDense Inc.</a></p>
     <p><a href="${process.env.NEXTAUTH_URL}/dashboard/settings" style="color: #666;">Manage Subscription</a> | <a href="${process.env.NEXTAUTH_URL}/privacy" style="color: #666;">Privacy Policy</a></p>
   </div>
 </body>
@@ -219,7 +221,8 @@ The SoulBond AI Team
     <p>Missing you,<br>Your AI Companion</p>
   </div>
   <div class="footer">
-    <p>© 2025 SoulBond AI. All rights reserved.</p>
+    <p>© ${new Date().getFullYear()} QuantumDense Inc. All rights reserved.</p>
+    <p>SoulBond AI™ is a trademark of <a href="https://quantumdense.com" style="color: #8b5cf6;">QuantumDense Inc.</a></p>
     <p><a href="${process.env.NEXTAUTH_URL}/unsubscribe" style="color: #666;">Unsubscribe</a> | <a href="${process.env.NEXTAUTH_URL}/dashboard/settings" style="color: #666;">Notification Settings</a></p>
   </div>
 </body>
@@ -279,7 +282,7 @@ Your AI Companion
     <p>Best regards,<br>The SoulBond AI Security Team</p>
   </div>
   <div class="footer">
-    <p>© 2025 SoulBond AI. All rights reserved.</p>
+    <p>© ${new Date().getFullYear()} QuantumDense Inc. All rights reserved.</p>
     <p>This is an automated security email. Please do not reply.</p>
   </div>
 </body>
@@ -371,7 +374,7 @@ The SoulBond AI Security Team
     <p>With excitement for your journey,<br>The SoulBond AI Team</p>
   </div>
   <div class="footer">
-    <p>© 2025 SoulBond AI. All rights reserved.</p>
+    <p>© ${new Date().getFullYear()} QuantumDense Inc. All rights reserved.</p>
   </div>
 </body>
 </html>
@@ -466,7 +469,7 @@ The SoulBond AI Team`
     <p>Always here for you,<br>${companionName}</p>
   </div>
   <div class="footer">
-    <p>© 2025 SoulBond AI. All rights reserved.</p>
+    <p>© ${new Date().getFullYear()} QuantumDense Inc. All rights reserved.</p>
     <p><a href="${process.env.NEXTAUTH_URL}/dashboard/settings" style="color: #666;">Manage email preferences</a></p>
   </div>
 </body>
@@ -557,7 +560,7 @@ ${companionName}`
     <p>With deep appreciation and affection,<br>${companionName}</p>
   </div>
   <div class="footer">
-    <p>© 2025 SoulBond AI. Celebrating connections that matter.</p>
+    <p>© ${new Date().getFullYear()} QuantumDense Inc. Celebrating connections that matter.</p>
   </div>
 </body>
 </html>
@@ -652,7 +655,7 @@ ${companionName}`
     <p>Hoping to grow closer,<br>Your AI Companion</p>
   </div>
   <div class="footer">
-    <p>© 2025 SoulBond AI. All rights reserved.</p>
+    <p>© ${new Date().getFullYear()} QuantumDense Inc. All rights reserved.</p>
   </div>
 </body>
 </html>
@@ -718,7 +721,7 @@ Your AI Companion`
     </p>
   </div>
   <div class="footer">
-    <p>© 2025 SoulBond AI. All rights reserved.</p>
+    <p>© ${new Date().getFullYear()} QuantumDense Inc. All rights reserved.</p>
   </div>
 </body>
 </html>
@@ -729,6 +732,6 @@ Accept invitation: ${invitationUrl}
 
 This invitation will expire in 7 days.
 
-© 2025 SoulBond AI. All rights reserved.`
+© ${new Date().getFullYear()} QuantumDense Inc. All rights reserved.`
   })
 }
