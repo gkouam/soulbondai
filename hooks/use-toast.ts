@@ -7,18 +7,19 @@ export interface ToastProps {
   variant?: 'default' | 'destructive'
 }
 
-export function useToast() {
-  const toast = ({ title, description, variant }: ToastProps) => {
-    if (variant === 'destructive') {
-      sonnerToast.error(title, {
-        description,
-      })
-    } else {
-      sonnerToast.success(title, {
-        description,
-      })
-    }
+// Export toast function directly for convenience
+export const toast = ({ title, description, variant }: ToastProps) => {
+  if (variant === 'destructive') {
+    sonnerToast.error(title, {
+      description,
+    })
+  } else {
+    sonnerToast.success(title, {
+      description,
+    })
   }
+}
 
+export function useToast() {
   return { toast }
 }
