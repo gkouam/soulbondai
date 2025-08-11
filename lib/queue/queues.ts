@@ -30,52 +30,56 @@ const defaultQueueOptions = {
   },
 }
 
-// Create queues
-export const emailQueue = new Queue(QUEUE_NAMES.EMAIL, {
-  connection,
-  ...defaultQueueOptions,
-})
+// Create queues only if Redis connection is available
+// Otherwise, create mock queues that do nothing
+const createQueue = (name: string, options: any = {}) => {
+  if (!connection) {
+    // Return a mock queue object that doesn't do anything
+    return {
+      add: async () => ({ id: 'mock-job-id' }),
+      remove: async () => {},
+      pause: async () => {},
+      resume: async () => {},
+      getJobs: async () => [],
+      getJobCounts: async () => ({ active: 0, completed: 0, failed: 0, delayed: 0, waiting: 0 }),
+    } as any
+  }
+  return new Queue(name, {
+    connection,
+    ...defaultQueueOptions,
+    ...options,
+  })
+}
 
-export const aiGenerationQueue = new Queue(QUEUE_NAMES.AI_GENERATION, {
-  connection,
-  ...defaultQueueOptions,
+// Create queues
+export const emailQueue = createQueue(QUEUE_NAMES.EMAIL)
+
+export const aiGenerationQueue = createQueue(QUEUE_NAMES.AI_GENERATION, {
   defaultJobOptions: {
     ...defaultQueueOptions.defaultJobOptions,
     attempts: 2, // Less retries for AI due to cost
   },
 })
 
-export const voiceSynthesisQueue = new Queue(QUEUE_NAMES.VOICE_SYNTHESIS, {
-  connection,
-  ...defaultQueueOptions,
-})
+export const voiceSynthesisQueue = createQueue(QUEUE_NAMES.VOICE_SYNTHESIS)
 
-export const imageProcessingQueue = new Queue(QUEUE_NAMES.IMAGE_PROCESSING, {
-  connection,
-  ...defaultQueueOptions,
-})
+export const imageProcessingQueue = createQueue(QUEUE_NAMES.IMAGE_PROCESSING)
 
-export const dataExportQueue = new Queue(QUEUE_NAMES.DATA_EXPORT, {
-  connection,
-  ...defaultQueueOptions,
+export const dataExportQueue = createQueue(QUEUE_NAMES.DATA_EXPORT, {
   defaultJobOptions: {
     ...defaultQueueOptions.defaultJobOptions,
     attempts: 5, // More retries for important data exports
   },
 })
 
-export const analyticsQueue = new Queue(QUEUE_NAMES.ANALYTICS, {
-  connection,
-  ...defaultQueueOptions,
+export const analyticsQueue = createQueue(QUEUE_NAMES.ANALYTICS, {
   defaultJobOptions: {
     ...defaultQueueOptions.defaultJobOptions,
     priority: 10, // Lower priority
   },
 })
 
-export const cleanupQueue = new Queue(QUEUE_NAMES.CLEANUP, {
-  connection,
-  ...defaultQueueOptions,
+export const cleanupQueue = createQueue(QUEUE_NAMES.CLEANUP, {
   defaultJobOptions: {
     ...defaultQueueOptions.defaultJobOptions,
     priority: 5, // Lowest priority
