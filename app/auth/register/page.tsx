@@ -12,9 +12,13 @@ import {
   registerBiometric
 } from "@/utils/biometric-auth"
 import { AITechHeartLogo } from "@/components/ai-tech-heart-logo"
+import { useFormTracking } from "@/hooks/use-utm-tracking"
+import { trackSignUp } from "@/components/analytics/google-analytics"
+import { FacebookPixelEvents } from "@/components/analytics/facebook-pixel"
 
 export default function RegisterPage() {
   const router = useRouter()
+  const { trackFormSubmission } = useFormTracking('register')
   const [isLoading, setIsLoading] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
   const [showAppleSignIn, setShowAppleSignIn] = useState(false)
@@ -105,6 +109,12 @@ export default function RegisterPage() {
     }
     
     try {
+      // Track form submission with UTM data
+      const enrichedData = trackFormSubmission({
+        name: formData.name,
+        email: formData.email,
+      })
+      
       // Register user
       const res = await fetch("/api/auth/register", {
         method: "POST",
@@ -112,7 +122,8 @@ export default function RegisterPage() {
         body: JSON.stringify({
           name: formData.name,
           email: formData.email,
-          password: formData.password
+          password: formData.password,
+          ...enrichedData
         })
       })
       
@@ -123,6 +134,10 @@ export default function RegisterPage() {
       
       // Registration successful
       setSuccess("Account created successfully! Signing you in...")
+      
+      // Track successful registration
+      trackSignUp('email')
+      FacebookPixelEvents.completeRegistration('email')
       
       // Save password visibility preference
       localStorage.setItem('showPassword', showPassword.toString())

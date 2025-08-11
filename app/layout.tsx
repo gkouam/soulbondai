@@ -7,6 +7,9 @@ import { KeyboardShortcutsHelp } from "@/components/keyboard-shortcuts-help";
 import { SkipNavigation } from "@/components/skip-navigation";
 import { OfflineIndicator } from "@/components/offline-indicator";
 import Footer from "@/components/footer";
+import GoogleAnalytics from "@/components/analytics/google-analytics";
+import FacebookPixel from "@/components/analytics/facebook-pixel";
+import { StructuredData } from "@/components/seo/structured-data";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -37,6 +40,9 @@ export default function RootLayout({
       </head>
       <body className={inter.className}>
         <SkipNavigation />
+        <StructuredData />
+        <GoogleAnalytics />
+        <FacebookPixel />
         <Providers>
           <OfflineIndicator />
           <div className="min-h-screen flex flex-col">
