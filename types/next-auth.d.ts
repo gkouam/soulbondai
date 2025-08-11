@@ -4,6 +4,7 @@ declare module "next-auth" {
   interface Session {
     user: {
       id: string
+      role?: 'USER' | 'ADMIN'
       phoneNumber?: string | null
       phoneVerified?: boolean
       subscription?: {
@@ -21,6 +22,7 @@ declare module "next-auth" {
 
   interface User {
     id: string
+    role?: 'USER' | 'ADMIN'
     phoneNumber?: string | null
     phoneVerified?: boolean
   }
@@ -29,5 +31,6 @@ declare module "next-auth" {
 declare module "next-auth/jwt" {
   interface JWT {
     id: string
+    role?: 'USER' | 'ADMIN'
   }
 }
