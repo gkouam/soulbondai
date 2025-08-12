@@ -8,11 +8,6 @@ const globalForPrisma = globalThis as unknown as {
 const prismaClientOptions = {
   log: process.env.NODE_ENV === "development" ? ["query", "error", "warn"] : ["error"],
   errorFormat: "minimal" as const,
-  datasources: {
-    db: {
-      url: process.env.DATABASE_URL
-    }
-  }
 }
 
 export const prisma = globalForPrisma.prisma ?? new PrismaClient(prismaClientOptions)

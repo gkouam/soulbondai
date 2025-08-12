@@ -18,9 +18,14 @@ model User {
   passwordHash  String?
   name          String?
   image         String?
-  phoneNumber   String?
+  phone         String?   // Changed from phoneNumber
+  phoneNumber   String?   // Keep for compatibility
   phoneVerified Boolean   @default(false)
   role          UserRole  @default(USER)
+  isActive      Boolean   @default(true)  // Add isActive field
+  lastActiveAt  DateTime? // Add lastActiveAt field
+  deletedAt     DateTime? // Add deletedAt field
+  subscriptionStatus String?  // Add subscriptionStatus field
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
@@ -39,6 +44,7 @@ model User {
   profile               Profile?
   subscription          Subscription?
   conversations         Conversation[]
+  messages              Message[]  // Add messages relation
   memories              Memory[]
   activities            Activity[]
   payments              Payment[]
@@ -109,7 +115,9 @@ model Subscription {
   stripePriceId        String?
   
   plan                 String   @default("free") // free, basic, premium, ultimate
+  planType             String   @default("free") // Alias for plan
   status               String   @default("active") // active, cancelled, past_due, unpaid
+  cancelAtPeriodEnd    Boolean  @default(false) // Add cancelAtPeriodEnd field
   
   currentPeriodStart   DateTime?
   currentPeriodEnd     DateTime?
@@ -139,6 +147,8 @@ model Message {
   id             String        @id @default(cuid())
   conversationId String
   conversation   Conversation  @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  userId         String?       // Add userId field
+  user           User?         @relation(fields: [userId], references: [id], onDelete: SetNull)
   
   role           String        // user, assistant, system
   content        String
@@ -149,6 +159,7 @@ model Message {
   createdAt      DateTime      @default(now())
   
   @@index([conversationId])
+  @@index([userId])
 }
 
 // Memory System
@@ -334,6 +345,7 @@ model AuditLog {
   user         User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
   
   action       String   // Enum value from AuditAction
+  resource     String?  // Simplified resource field
   resourceType String?  // Type of resource (e.g., "character", "subscription")
   resourceId   String?  // ID of the resource
   
