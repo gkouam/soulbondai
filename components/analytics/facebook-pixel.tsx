@@ -2,7 +2,7 @@
 
 import Script from 'next/script'
 import { usePathname, useSearchParams } from 'next/navigation'
-import { useEffect } from 'react'
+import { useEffect, Suspense } from 'react'
 
 // Replace with your actual Facebook Pixel ID
 const FB_PIXEL_ID = process.env.NEXT_PUBLIC_FB_PIXEL_ID || ''
@@ -102,7 +102,7 @@ export const FacebookPixelEvents = {
   },
 }
 
-export default function FacebookPixel() {
+function FacebookPixelInner() {
   const pathname = usePathname()
   const searchParams = useSearchParams()
 
@@ -141,5 +141,13 @@ export default function FacebookPixel() {
         />
       </noscript>
     </>
+  )
+}
+
+export default function FacebookPixel() {
+  return (
+    <Suspense fallback={null}>
+      <FacebookPixelInner />
+    </Suspense>
   )
 }
