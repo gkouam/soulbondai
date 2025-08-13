@@ -12,7 +12,14 @@ interface VoiceSynthesisJobData {
   userId: string
 }
 
-export const voiceSynthesisWorker = new Worker<VoiceSynthesisJobData>(
+// Create a mock worker if no Redis connection
+const mockWorker = {
+  on: () => {},
+  close: async () => {},
+} as any
+
+// Only create worker if we have a Redis connection
+export const voiceSynthesisWorker = connection ? new Worker<VoiceSynthesisJobData>(
   QUEUE_NAMES.VOICE_SYNTHESIS,
   async (job) => {
     const { messageId, text, voice, userId } = job.data
@@ -73,12 +80,15 @@ export const voiceSynthesisWorker = new Worker<VoiceSynthesisJobData>(
       duration: 60000, // 20 voice syntheses per minute
     },
   }
-)
+) : mockWorker
 
-voiceSynthesisWorker.on('completed', (job) => {
-  console.log(`Voice synthesis job ${job.id} completed`)
-})
+// Only set up event handlers if we have a real worker
+if (connection) {
+  voiceSynthesisWorker.on('completed', (job: any) => {
+    console.log(`Voice synthesis job ${job.id} completed`)
+  })
 
-voiceSynthesisWorker.on('failed', (job, err) => {
-  console.error(`Voice synthesis job ${job?.id} failed:`, err)
-})
+  voiceSynthesisWorker.on('failed', (job: any, err: Error) => {
+    console.error(`Voice synthesis job ${job?.id} failed:`, err)
+  })
+}

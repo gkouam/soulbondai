@@ -10,7 +10,14 @@ interface EmailJobData {
   data: any
 }
 
-export const emailWorker = new Worker<EmailJobData>(
+// Create a mock worker if no Redis connection
+const mockWorker = {
+  on: () => {},
+  close: async () => {},
+} as any
+
+// Only create worker if we have a Redis connection
+export const emailWorker = connection ? new Worker<EmailJobData>(
   QUEUE_NAMES.EMAIL,
   async (job) => {
     const { type, to, subject, data } = job.data
@@ -78,12 +85,15 @@ export const emailWorker = new Worker<EmailJobData>(
       duration: 1000, // 10 emails per second max
     },
   }
-)
+) : mockWorker
 
-emailWorker.on('completed', (job) => {
-  console.log(`Email job ${job.id} completed`)
-})
+// Only set up event handlers if we have a real worker
+if (connection) {
+  emailWorker.on('completed', (job: any) => {
+    console.log(`Email job ${job.id} completed`)
+  })
 
-emailWorker.on('failed', (job, err) => {
-  console.error(`Email job ${job?.id} failed:`, err)
-})
+  emailWorker.on('failed', (job: any, err: Error) => {
+    console.error(`Email job ${job?.id} failed:`, err)
+  })
+}

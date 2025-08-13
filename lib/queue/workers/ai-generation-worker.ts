@@ -12,7 +12,14 @@ interface AIGenerationJobData {
   context?: any
 }
 
-export const aiGenerationWorker = new Worker<AIGenerationJobData>(
+// Create a mock worker if no Redis connection
+const mockWorker = {
+  on: () => {},
+  close: async () => {},
+} as any
+
+// Only create worker if we have a Redis connection
+export const aiGenerationWorker = connection ? new Worker<AIGenerationJobData>(
   QUEUE_NAMES.AI_GENERATION,
   async (job) => {
     const { conversationId, userId, message, characterId, context } = job.data
@@ -91,15 +98,18 @@ export const aiGenerationWorker = new Worker<AIGenerationJobData>(
       duration: 60000, // 10 requests per minute
     },
   }
-)
+) : mockWorker
 
-aiGenerationWorker.on('completed', (job) => {
-  console.log(`AI generation job ${job.id} completed`)
-})
+// Only set up event handlers if we have a real worker
+if (connection) {
+  aiGenerationWorker.on('completed', (job: any) => {
+    console.log(`AI generation job ${job.id} completed`)
+  })
 
-aiGenerationWorker.on('failed', (job, err) => {
-  console.error(`AI generation job ${job?.id} failed:`, err)
-})
+  aiGenerationWorker.on('failed', (job: any, err: Error) => {
+    console.error(`AI generation job ${job?.id} failed:`, err)
+  })
+}
 
 aiGenerationWorker.on('progress', (job, progress) => {
   console.log(`AI generation job ${job.id} progress: ${progress}%`)
