@@ -3,8 +3,8 @@ import { Redis } from "@upstash/redis"
 // Create Redis client using Upstash (serverless Redis)
 // This is optional - the app will work without Redis
 // Supports both REDIS_URL and UPSTASH_REDIS_REST_URL formats
-const redisUrl = process.env.REDIS_URL || process.env.UPSTASH_REDIS_REST_URL
-const redisToken = process.env.REDIS_TOKEN || process.env.UPSTASH_REDIS_REST_TOKEN
+const redisUrl = (process.env.REDIS_URL || process.env.UPSTASH_REDIS_REST_URL)?.trim()
+const redisToken = (process.env.REDIS_TOKEN || process.env.UPSTASH_REDIS_REST_TOKEN)?.trim()
 
 export const redis = redisUrl && redisToken
   ? new Redis({
