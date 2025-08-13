@@ -25,7 +25,7 @@ export async function GET() {
     
     return NextResponse.json({
       plan,
-      limits
+      ...limits
     })
     
   } catch (error) {

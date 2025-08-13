@@ -14,6 +14,7 @@ import { redirect } from "next/navigation"
 import { useToast } from "@/components/ui/toast-provider"
 import { PhotoUpload } from "@/components/photo-upload"
 import { RateLimitIndicator } from "@/components/rate-limit-indicator"
+import { RateLimitBanner } from "@/components/rate-limit-banner"
 import { useKeyboardNavigation } from "@/hooks/use-keyboard-navigation"
 import { useOffline } from "@/hooks/use-offline"
 
@@ -34,6 +35,12 @@ export default function ChatPage() {
   const [celebratingMilestone, setCelebratingMilestone] = useState<any>(null)
   const [upgradePrompt, setUpgradePrompt] = useState<any>(null)
   const [featureAccess, setFeatureAccess] = useState<Record<string, boolean>>({})
+  const [rateLimitInfo, setRateLimitInfo] = useState<{
+    limit: number
+    remaining: number
+    reset: string
+    plan: string
+  } | null>(null)
   const { toast } = useToast()
   const { isOnline, addToOfflineQueue, cacheData, getCachedData } = useOffline()
   
@@ -59,8 +66,8 @@ export default function ChatPage() {
           }
         }
         
-        // Load conversation, voice settings, and feature access
-        const [conversationRes, voiceSettingsRes, featuresRes] = await Promise.all([
+        // Load conversation, voice settings, feature access, and rate limits
+        const [conversationRes, voiceSettingsRes, featuresRes, rateLimitsRes] = await Promise.all([
           fetch("/api/chat/conversation"),
           fetch("/api/voice/settings"),
           fetch("/api/features/check", {
@@ -69,7 +76,8 @@ export default function ChatPage() {
             body: JSON.stringify({ 
               features: ["voice_messages", "photo_sharing"] 
             })
-          })
+          }),
+          fetch("/api/rate-limits")
         ])
         
         if (conversationRes.ok) {
@@ -90,6 +98,18 @@ export default function ChatPage() {
         if (featuresRes.ok) {
           const featuresData = await featuresRes.json()
           setFeatureAccess(featuresData.access || {})
+        }
+        
+        if (rateLimitsRes.ok) {
+          const limitsData = await rateLimitsRes.json()
+          if (limitsData.chat) {
+            setRateLimitInfo({
+              limit: limitsData.chat.limit,
+              remaining: limitsData.chat.remaining,
+              reset: limitsData.chat.reset,
+              plan: limitsData.plan || "free"
+            })
+          }
         }
       } catch (error) {
         console.error("Failed to load data:", error)
@@ -229,18 +249,57 @@ export default function ChatPage() {
             }
           }
           
+        // Update rate limit info if provided
+        if (data.messagesRemaining !== undefined) {
+          setRateLimitInfo(prev => prev ? {
+            ...prev,
+            remaining: data.messagesRemaining
+          } : null)
+        }
+        
         // Handle upgrade prompts
         if (data.upgradePrompt) {
           setUpgradePrompt(data.upgradePrompt)
         }
       } else {
         const errorData = await res.json().catch(() => ({ error: "Failed to send message" }))
-        console.error("Chat error:", errorData)
-        toast({
-          type: "error",
-          title: "Failed to send message",
-          description: errorData.error || "Please try again"
-        })
+        
+        // Handle rate limit errors specifically
+        if (res.status === 429) {
+          const resetTime = errorData.reset ? new Date(errorData.reset) : null
+          const hoursUntilReset = resetTime ? Math.ceil((resetTime.getTime() - Date.now()) / (1000 * 60 * 60)) : 24
+          
+          toast({
+            type: "warning",
+            title: "Daily Message Limit Reached",
+            description: `You've used all ${errorData.limit || 10} messages for today. Your limit resets in ${hoursUntilReset} hours.`,
+            action: {
+              label: "Upgrade",
+              onClick: () => window.location.href = "/pricing"
+            }
+          })
+          
+          // Show upgrade prompt with special rate limit message
+          setUpgradePrompt({
+            show: true,
+            type: "rate_limit",
+            title: "You've reached your daily limit",
+            message: `Free users get ${errorData.limit || 10} messages per day. Upgrade to continue chatting with your companion!`,
+            benefits: [
+              "50-200 messages per day",
+              "Voice messages",
+              "Photo sharing",
+              "Priority support"
+            ]
+          })
+        } else {
+          // Other errors
+          toast({
+            type: "error",
+            title: "Failed to send message",
+            description: errorData.error || "Please try again"
+          })
+        }
       }
     } catch (error) {
       console.error("Failed to send message:", error)
@@ -323,6 +382,17 @@ export default function ChatPage() {
   
   return (
     <div id="main-content" className="flex flex-col h-screen bg-gray-50" role="main">
+      {/* Rate Limit Banner */}
+      {rateLimitInfo && (
+        <RateLimitBanner
+          remaining={rateLimitInfo.remaining}
+          limit={rateLimitInfo.limit}
+          reset={rateLimitInfo.reset}
+          plan={rateLimitInfo.plan}
+          onClose={() => setRateLimitInfo(null)}
+        />
+      )}
+      
       {/* Header */}
       <div className="bg-white shadow-sm px-3 sm:px-4 py-2 sm:py-3" role="region" aria-label="Chat header">
         <div className="flex items-center justify-between">
@@ -490,6 +560,31 @@ export default function ChatPage() {
       
       {/* Input */}
       <div className="bg-white border-t border-gray-200 px-3 sm:px-4 py-2 sm:py-3 safe-area-inset-bottom" role="region" aria-label="Message input">
+        {/* Message Counter */}
+        {rateLimitInfo && rateLimitInfo.plan !== "ultimate" && (
+          <div className="flex items-center justify-between mb-2 px-2">
+            <div className="text-xs text-gray-500">
+              {rateLimitInfo.remaining > 0 ? (
+                <span>
+                  {rateLimitInfo.remaining} of {rateLimitInfo.limit} messages remaining today
+                </span>
+              ) : (
+                <span className="text-red-500 font-medium">
+                  Daily limit reached - resets at midnight
+                </span>
+              )}
+            </div>
+            {rateLimitInfo.remaining <= 5 && rateLimitInfo.remaining > 0 && (
+              <a 
+                href="/pricing" 
+                className="text-xs text-purple-600 hover:text-purple-700 font-medium"
+              >
+                Upgrade for more
+              </a>
+            )}
+          </div>
+        )}
+        
         <div className="flex items-end space-x-1 sm:space-x-2">
           <button className="p-2.5 sm:p-2 hover:bg-gray-100 rounded-full transition min-w-[44px] min-h-[44px] sm:min-w-0 sm:min-h-0 flex items-center justify-center focus:outline-none focus:ring-2 focus:ring-purple-500" aria-label="Add emoji">
             <Smile className="w-6 h-6 text-gray-600" />
@@ -502,8 +597,12 @@ export default function ChatPage() {
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyPress={handleKeyPress}
-              placeholder={`Message ${companionName}...`}
-              disabled={isFreeTier && messagesUsedToday >= messageLimit}
+              placeholder={
+                rateLimitInfo && rateLimitInfo.remaining === 0 
+                  ? "Daily limit reached - upgrade to continue"
+                  : `Message ${companionName}...`
+              }
+              disabled={(isFreeTier && messagesUsedToday >= messageLimit) || (rateLimitInfo && rateLimitInfo.remaining === 0)}
               className="w-full px-3 sm:px-4 py-2 sm:py-2.5 bg-gray-100 rounded-full text-gray-900 placeholder-gray-500 text-sm sm:text-base focus:outline-none focus:ring-2 focus:ring-purple-500 disabled:opacity-50 disabled:cursor-not-allowed"
               aria-label="Type your message"
             />
@@ -513,7 +612,7 @@ export default function ChatPage() {
             whileHover={{ scale: 1.1 }}
             whileTap={{ scale: 0.9 }}
             onClick={sendMessage}
-            disabled={!input.trim() || (isFreeTier && messagesUsedToday >= messageLimit)}
+            disabled={!input.trim() || (isFreeTier && messagesUsedToday >= messageLimit) || (rateLimitInfo && rateLimitInfo.remaining === 0)}
             className="p-2.5 sm:p-2 bg-purple-600 text-white rounded-full hover:bg-purple-700 transition disabled:opacity-50 disabled:cursor-not-allowed min-w-[44px] min-h-[44px] sm:min-w-0 sm:min-h-0 flex items-center justify-center focus:outline-none focus:ring-2 focus:ring-purple-300"
             aria-label="Send message"
           >
