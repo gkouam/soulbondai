@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, Suspense } from "react"
 import { useRouter } from "next/navigation"
 import { signIn } from "next-auth/react"
 import { motion, AnimatePresence } from "framer-motion"
@@ -16,7 +16,7 @@ import { useFormTracking } from "@/hooks/use-utm-tracking"
 import { trackSignUp } from "@/components/analytics/google-analytics"
 import { FacebookPixelEvents } from "@/components/analytics/facebook-pixel"
 
-export default function RegisterPage() {
+function RegisterPageContent() {
   const router = useRouter()
   const { trackFormSubmission } = useFormTracking('register')
   const [isLoading, setIsLoading] = useState(false)
@@ -496,5 +496,17 @@ export default function RegisterPage() {
         </motion.div>
       </div>
     </div>
+  )
+}
+
+export default function RegisterPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-gradient-to-br from-gray-950 via-gray-900 to-gray-950 flex items-center justify-center">
+        <div className="animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-violet-500"></div>
+      </div>
+    }>
+      <RegisterPageContent />
+    </Suspense>
   )
 }
