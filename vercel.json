@@ -99,5 +99,15 @@
       "destination": "/",
       "permanent": true
     }
+  ],
+  "crons": [
+    {
+      "path": "/api/cron/conversion-triggers",
+      "schedule": "0 10 * * *"
+    },
+    {
+      "path": "/api/cron/cleanup-memories",
+      "schedule": "0 2 * * *"
+    }
   ]
 }
