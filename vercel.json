@@ -3,8 +3,10 @@
   "devCommand": "npm run dev",
   "installCommand": "npm install",
   "framework": "nextjs",
+  "regions": ["iad1"],
   "env": {
-    "NEXT_TELEMETRY_DISABLED": "1"
+    "NEXT_TELEMETRY_DISABLED": "1",
+    "NODE_ENV": "production"
   },
   "build": {
     "env": {
@@ -13,8 +15,89 @@
     }
   },
   "functions": {
-    "app/api/**/*.ts": {
+    "app/api/chat/message/route.ts": {
       "maxDuration": 30
+    },
+    "app/api/personality/test/route.ts": {
+      "maxDuration": 30
+    },
+    "app/api/voice/synthesize/route.ts": {
+      "maxDuration": 30
+    },
+    "app/api/stripe/webhook/route.ts": {
+      "maxDuration": 30
+    },
+    "app/api/admin/analytics/route.ts": {
+      "maxDuration": 30
+    },
+    "app/api/**/*.ts": {
+      "maxDuration": 10
     }
-  }
+  },
+  "headers": [
+    {
+      "source": "/(.*)",
+      "headers": [
+        {
+          "key": "X-Content-Type-Options",
+          "value": "nosniff"
+        },
+        {
+          "key": "X-Frame-Options",
+          "value": "DENY"
+        },
+        {
+          "key": "X-XSS-Protection",
+          "value": "1; mode=block"
+        },
+        {
+          "key": "Strict-Transport-Security",
+          "value": "max-age=31536000; includeSubDomains"
+        },
+        {
+          "key": "Referrer-Policy",
+          "value": "strict-origin-when-cross-origin"
+        },
+        {
+          "key": "Permissions-Policy",
+          "value": "camera=(), microphone=(), geolocation=()"
+        },
+        {
+          "key": "Content-Security-Policy",
+          "value": "default-src 'self' https:; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://js.stripe.com https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https: blob:; connect-src 'self' https://api.stripe.com https://api.openai.com wss://ws-*.pusher.com https://sockjs-*.pusher.com https://*.pusher.com https://*.upstash.io https://*.pinecone.io https://*.cloudinary.com; frame-src https://js.stripe.com https://hooks.stripe.com; object-src 'none';"
+        }
+      ]
+    },
+    {
+      "source": "/api/(.*)",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "no-store, no-cache, must-revalidate, proxy-revalidate"
+        }
+      ]
+    },
+    {
+      "source": "/static/(.*)",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=31536000, immutable"
+        }
+      ]
+    }
+  ],
+  "rewrites": [
+    {
+      "source": "/api/stripe/webhook",
+      "destination": "/api/stripe/webhook"
+    }
+  ],
+  "redirects": [
+    {
+      "source": "/home",
+      "destination": "/",
+      "permanent": true
+    }
+  ]
 }

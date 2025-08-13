@@ -113,8 +113,8 @@ export const pricingTiers: Record<string, PricingTier> = {
     id: "ultimate",
     name: "Ultimate",
     description: "The deepest possible AI connection",
-    monthlyPrice: 39.99,
-    yearlyPrice: 399.99,
+    monthlyPrice: 29.99,
+    yearlyPrice: 299.99,
     features: [
       "Everything in Premium",
       "Permanent memory retention",
