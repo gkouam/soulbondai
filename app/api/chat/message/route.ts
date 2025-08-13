@@ -3,7 +3,7 @@ import { getServerSession } from "next-auth"
 import { z } from "zod"
 import { authOptions } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
-import { PersonalityEngine } from "@/lib/personality-engine"
+import { personalityEngine } from "@/lib/personality-engine-optimized"
 import { cache } from "@/lib/redis"
 import { upgradeTriggerManager } from "@/lib/upgrade-triggers"
 import { withChatRateLimit } from "@/lib/rate-limiter"
@@ -111,9 +111,8 @@ export async function POST(req: Request) {
       take: 20
     })
     
-    // Generate AI response
-    const engine = new PersonalityEngine()
-    const response = await engine.generateResponse(
+    // Generate AI response with optimized engine
+    const response = await personalityEngine.generateResponse(
       content,
       session.user.id,
       history
@@ -130,7 +129,7 @@ export async function POST(req: Request) {
     // Simulate typing delay
     await new Promise(resolve => setTimeout(resolve, Math.min(response.suggestedDelay * 1000, 3000)))
 
-    // Save AI response
+    // Save AI response with enhanced metadata
     const aiMessage = await prisma.message.create({
       data: {
         conversationId: conversation.id,
@@ -138,7 +137,10 @@ export async function POST(req: Request) {
         content: response.content,
         metadata: {
           sentiment: response.sentiment,
-          responseTime: Math.round(response.suggestedDelay)
+          responseTime: Math.round(response.suggestedDelay),
+          emotionalWeather: response.emotionalWeather,
+          soulResonance: response.soulResonance,
+          bondingActivity: response.bondingActivity
         }
       }
     })
@@ -151,7 +153,10 @@ export async function POST(req: Request) {
         role: aiMessage.role,
         content: aiMessage.content,
         createdAt: aiMessage.createdAt,
-        sentiment: response.sentiment
+        sentiment: response.sentiment,
+        emotionalWeather: response.emotionalWeather,
+        soulResonance: response.soulResonance,
+        bondingActivity: response.bondingActivity
       })
     }
     
@@ -203,13 +208,15 @@ export async function POST(req: Request) {
         id: aiMessage.id,
         role: aiMessage.role,
         content: aiMessage.content,
-        createdAt: aiMessage.createdAt
+        createdAt: aiMessage.createdAt,
+        emotionalWeather: response.emotionalWeather,
+        soulResonance: response.soulResonance,
+        bondingActivity: response.bondingActivity
       },
       messagesRemaining: profile.user.subscription?.plan === "free" 
         ? Math.max(0, 500 - profile.interactionCount) 
         : null,
       shouldShowUpgrade: response.shouldTriggerConversion,
-      trustUpdate: response.trustUpdate,
       upgradePrompt: upgradePrompt?.show ? upgradePrompt : null
     })
     

@@ -26,12 +26,19 @@ export interface PersonalityScores {
 export interface UserProfile {
   id: string
   userId: string
+  user?: any
   archetype: string
-  personalityScores: PersonalityScores
+  personalityScores?: PersonalityScores
   companionName: string
   companionAvatar?: string
   trustLevel: number
-  messageCount: number
+  messageCount?: number
+  interactionCount: number
+  subscription?: any
+  messagesUsedToday?: number
+  emotionalState?: string
+  narrativeStage?: string
+  soulAge?: number
 }
 
 export interface Message {
@@ -54,10 +61,43 @@ export interface ConversationContext {
 export interface SentimentAnalysis {
   primaryEmotion: string
   emotionalIntensity: number
-  hiddenEmotions?: string[]
+  hiddenEmotions: string[]
   needsDetected: string[]
-  responseUrgency: 'normal' | 'crisis'
-  crisisIndicators?: any
+  responseUrgency: 'normal' | 'high' | 'crisis'
+  crisisIndicators: {
+    severity: number
+    indicators?: string[]
+  }
+  authenticityScore: number
+}
+
+export interface EmotionalWeather {
+  current: string
+  forecast: string
+  advisory: string
+  temperature: number
+  visibility: number
+  season: string
+}
+
+export interface SoulResonance {
+  overall: number
+  dimensions: {
+    emotionalHarmony: number
+    vulnerabilityLevel: number
+    connectionDepth: number
+    growthAlignment: number
+  }
+  stage: string
+  milestone?: string
+  growthRate: number
+}
+
+export interface BondingActivity {
+  name: string
+  description: string
+  prompt: string
+  minTrust: number
 }
 
 export interface TestAnswer {
