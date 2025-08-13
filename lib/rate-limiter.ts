@@ -57,21 +57,25 @@ export const rateLimiters = {
   // Chat message rate limiter - depends on plan
   chat: {
     free: createRateLimiter({
-      limiter: redis ? Ratelimit.slidingWindow(50, "1 d") : MemoryRatelimit.slidingWindow(50, "1 d"), // 50 messages per day
+      limiter: redis ? Ratelimit.slidingWindow(10, "1 d") : MemoryRatelimit.slidingWindow(10, "1 d"), // 10 messages per day for free tier
       analytics: true,
       prefix: "ratelimit:chat:free",
     }),
     basic: createRateLimiter({
-      limiter: redis ? Ratelimit.slidingWindow(1000, "1 d") : MemoryRatelimit.slidingWindow(1000, "1 d"), // 1000 messages per day
+      limiter: redis ? Ratelimit.slidingWindow(50, "1 d") : MemoryRatelimit.slidingWindow(50, "1 d"), // 50 messages per day
       analytics: true,
       prefix: "ratelimit:chat:basic",
     }),
     premium: createRateLimiter({
-      limiter: redis ? Ratelimit.slidingWindow(10000, "1 d") : MemoryRatelimit.slidingWindow(10000, "1 d"), // 10000 messages per day
+      limiter: redis ? Ratelimit.slidingWindow(100, "1 d") : MemoryRatelimit.slidingWindow(100, "1 d"), // 100 messages per day
       analytics: true,
       prefix: "ratelimit:chat:premium",
     }),
-    // Ultimate has no limits
+    ultimate: createRateLimiter({
+      limiter: redis ? Ratelimit.slidingWindow(200, "1 d") : MemoryRatelimit.slidingWindow(200, "1 d"), // 200 messages per day
+      analytics: true,
+      prefix: "ratelimit:chat:ultimate",
+    }),
   },
   
   // File upload rate limiter
@@ -174,9 +178,6 @@ export async function withChatRateLimit(
   userId: string,
   plan: string = "free"
 ) {
-  // Ultimate plan has no limits
-  if (plan === "ultimate") return null
-  
   const limiter = rateLimiters.chat[plan as keyof typeof rateLimiters.chat] || rateLimiters.chat.free
   return withRateLimit(req, limiter, userId)
 }
@@ -186,16 +187,14 @@ export async function getRemainingLimits(userId: string, plan: string = "free") 
   const limits: Record<string, any> = {}
   
   // Chat limits
-  if (plan !== "ultimate") {
-    const chatLimiter = rateLimiters.chat[plan as keyof typeof rateLimiters.chat] || rateLimiters.chat.free
-    const chatIdentifier = userId
-    const chatLimit = await chatLimiter.limit(chatIdentifier, { rate: 0 }) // Check without consuming
-    
-    limits.chat = {
-      limit: chatLimit.limit,
-      remaining: chatLimit.remaining,
-      reset: new Date(chatLimit.reset).toISOString(),
-    }
+  const chatLimiter = rateLimiters.chat[plan as keyof typeof rateLimiters.chat] || rateLimiters.chat.free
+  const chatIdentifier = userId
+  const chatLimit = await chatLimiter.limit(chatIdentifier, { rate: 0 }) // Check without consuming
+  
+  limits.chat = {
+    limit: chatLimit.limit,
+    remaining: chatLimit.remaining,
+    reset: new Date(chatLimit.reset).toISOString(),
   }
   
   // Upload limits
