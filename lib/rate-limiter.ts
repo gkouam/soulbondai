@@ -5,16 +5,15 @@ import { NextResponse } from "next/server"
 import { MemoryRatelimit } from "./rate-limiter-memory"
 
 // Check if Redis is configured
-const isRedisConfigured = !!(
-  process.env.UPSTASH_REDIS_REST_URL &&
-  process.env.UPSTASH_REDIS_REST_TOKEN
-)
+const redisUrl = process.env.UPSTASH_REDIS_REST_URL?.trim()
+const redisToken = process.env.UPSTASH_REDIS_REST_TOKEN?.trim()
+const isRedisConfigured = !!(redisUrl && redisToken)
 
 // Initialize Redis client if configured
 const redis = isRedisConfigured
   ? new Redis({
-      url: process.env.UPSTASH_REDIS_REST_URL!,
-      token: process.env.UPSTASH_REDIS_REST_TOKEN!,
+      url: redisUrl!,
+      token: redisToken!,
     })
   : null
 
