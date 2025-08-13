@@ -40,10 +40,31 @@ export class PersonalityEngine {
   
   constructor() {
     this.openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
-    this.redis = new Redis({
-      url: process.env.REDIS_URL || process.env.UPSTASH_REDIS_REST_URL!,
-      token: process.env.REDIS_TOKEN || process.env.UPSTASH_REDIS_REST_TOKEN!
-    })
+    
+    // Safely initialize Redis with trimmed values
+    const redisUrl = (process.env.REDIS_URL || process.env.UPSTASH_REDIS_REST_URL || '').trim()
+    const redisToken = (process.env.REDIS_TOKEN || process.env.UPSTASH_REDIS_REST_TOKEN || '').trim()
+    
+    if (redisUrl && redisToken) {
+      this.redis = new Redis({
+        url: redisUrl,
+        token: redisToken
+      })
+    } else {
+      // Create a dummy Redis for development/testing
+      console.warn('Redis not configured, using in-memory fallback')
+      this.redis = {
+        get: async () => null,
+        set: async () => 'OK',
+        del: async () => 1,
+        expire: async () => 1,
+        lpush: async () => 1,
+        lrange: async () => [],
+        hgetall: async () => ({}),
+        hincrby: async () => 1,
+        incrbyfloat: async () => 1
+      } as any
+    }
     
     // Initialize caches
     this.emotionalCache = new LRUCache<string, any>({ 
