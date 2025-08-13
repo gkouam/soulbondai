@@ -64,7 +64,7 @@
         },
         {
           "key": "Content-Security-Policy",
-          "value": "default-src 'self' https:; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://js.stripe.com https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https: blob:; connect-src 'self' https://api.stripe.com https://api.openai.com wss://ws-us2.pusher.com wss://ws-us3.pusher.com https://sockjs-us2.pusher.com https://sockjs-us3.pusher.com https://*.pusher.com https://*.upstash.io https://*.pinecone.io https://*.cloudinary.com; frame-src https://js.stripe.com https://hooks.stripe.com; object-src 'none';"
+          "value": "default-src 'self' https:; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://js.stripe.com https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https: blob:; connect-src 'self' https://api.stripe.com https://api.openai.com wss://ws-us2.pusher.com wss://ws-us3.pusher.com https://sockjs-us2.pusher.com https://sockjs-us3.pusher.com https://stats.pusher.com https://pusher.com https://*.upstash.io https://*.pinecone.io https://*.cloudinary.com; frame-src https://js.stripe.com https://hooks.stripe.com; object-src 'none';"
         }
       ]
     },
