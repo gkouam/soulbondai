@@ -194,31 +194,65 @@ export async function withChatRateLimit(
 export async function getRemainingLimits(userId: string, plan: string = "free") {
   const limits: Record<string, any> = {}
   
-  // Chat limits
-  const chatLimiter = rateLimiters.chat[plan as keyof typeof rateLimiters.chat] || rateLimiters.chat.free
-  const chatIdentifier = userId
-  const chatLimit = await chatLimiter.limit(chatIdentifier, { rate: 0 }) // Check without consuming
-  
-  limits.chat = {
-    limit: chatLimit.limit,
-    remaining: chatLimit.remaining,
-    reset: new Date(chatLimit.reset).toISOString(),
+  try {
+    // Chat limits
+    const chatLimiter = rateLimiters.chat[plan as keyof typeof rateLimiters.chat] || rateLimiters.chat.free
+    const chatIdentifier = userId
+    const chatLimit = await chatLimiter.limit(chatIdentifier, { rate: 0 }) // Check without consuming
+    
+    limits.chat = {
+      limit: chatLimit.limit || 10,
+      remaining: chatLimit.remaining !== undefined ? chatLimit.remaining : 10,
+      reset: new Date(chatLimit.reset || Date.now() + 24 * 60 * 60 * 1000).toISOString(),
+    }
+  } catch (error) {
+    console.error("Failed to get chat limits:", error)
+    // Default chat limits based on plan
+    const defaultLimits = {
+      free: 10,
+      basic: 50,
+      premium: 100,
+      ultimate: 200
+    }
+    limits.chat = {
+      limit: defaultLimits[plan as keyof typeof defaultLimits] || 10,
+      remaining: defaultLimits[plan as keyof typeof defaultLimits] || 10,
+      reset: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
+    }
   }
   
-  // Upload limits
-  const uploadLimit = await rateLimiters.upload.limit(userId, { rate: 0 })
-  limits.upload = {
-    limit: uploadLimit.limit,
-    remaining: uploadLimit.remaining,
-    reset: new Date(uploadLimit.reset).toISOString(),
+  try {
+    // Upload limits
+    const uploadLimit = await rateLimiters.upload.limit(userId, { rate: 0 })
+    limits.upload = {
+      limit: uploadLimit.limit || 10,
+      remaining: uploadLimit.remaining !== undefined ? uploadLimit.remaining : 10,
+      reset: new Date(uploadLimit.reset || Date.now() + 60 * 60 * 1000).toISOString(),
+    }
+  } catch (error) {
+    console.error("Failed to get upload limits:", error)
+    limits.upload = {
+      limit: 10,
+      remaining: 10,
+      reset: new Date(Date.now() + 60 * 60 * 1000).toISOString(),
+    }
   }
   
-  // Generation limits
-  const generationLimit = await rateLimiters.generation.limit(userId, { rate: 0 })
-  limits.generation = {
-    limit: generationLimit.limit,
-    remaining: generationLimit.remaining,
-    reset: new Date(generationLimit.reset).toISOString(),
+  try {
+    // Generation limits
+    const generationLimit = await rateLimiters.generation.limit(userId, { rate: 0 })
+    limits.generation = {
+      limit: generationLimit.limit || 50,
+      remaining: generationLimit.remaining !== undefined ? generationLimit.remaining : 50,
+      reset: new Date(generationLimit.reset || Date.now() + 60 * 60 * 1000).toISOString(),
+    }
+  } catch (error) {
+    console.error("Failed to get generation limits:", error)
+    limits.generation = {
+      limit: 50,
+      remaining: 50,
+      reset: new Date(Date.now() + 60 * 60 * 1000).toISOString(),
+    }
   }
   
   return limits

@@ -104,13 +104,24 @@ export default function ChatPage() {
           try {
             const limitsData = await rateLimitsRes.json()
             // Handle both possible response formats
-            if (limitsData && limitsData.chat) {
-              setRateLimitInfo({
-                limit: limitsData.chat.limit,
-                remaining: limitsData.chat.remaining,
-                reset: limitsData.chat.reset,
-                plan: limitsData.plan || "free"
-              })
+            if (limitsData && typeof limitsData === 'object') {
+              // Check if it has the expected structure
+              if (limitsData.chat && typeof limitsData.chat === 'object') {
+                setRateLimitInfo({
+                  limit: limitsData.chat.limit || 10,
+                  remaining: limitsData.chat.remaining !== undefined ? limitsData.chat.remaining : 10,
+                  reset: limitsData.chat.reset || new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
+                  plan: limitsData.plan || "free"
+                })
+              } else {
+                // Set default values if structure is unexpected
+                setRateLimitInfo({
+                  limit: 10,
+                  remaining: 10,
+                  reset: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
+                  plan: limitsData.plan || "free"
+                })
+              }
             }
           } catch (error) {
             console.error("Failed to parse rate limits:", error)
@@ -122,6 +133,14 @@ export default function ChatPage() {
               plan: "free"
             })
           }
+        } else {
+          // If rate limits endpoint fails, set default values
+          setRateLimitInfo({
+            limit: 10,
+            remaining: 10,
+            reset: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
+            plan: "free"
+          })
         }
       } catch (error) {
         console.error("Failed to load data:", error)

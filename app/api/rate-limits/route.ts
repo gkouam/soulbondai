@@ -21,12 +21,45 @@ export async function GET() {
     })
     
     const plan = subscription?.plan || "free"
-    const limits = await getRemainingLimits(session.user.id, plan)
     
-    return NextResponse.json({
-      plan,
-      ...limits
-    })
+    try {
+      const limits = await getRemainingLimits(session.user.id, plan)
+      
+      return NextResponse.json({
+        plan,
+        ...limits
+      })
+    } catch (limitsError) {
+      // If rate limiter fails, return default values
+      console.error("Failed to get rate limits:", limitsError)
+      
+      // Return default limits based on plan
+      const defaultLimits = {
+        free: 10,
+        basic: 50,
+        premium: 100,
+        ultimate: 200
+      }
+      
+      return NextResponse.json({
+        plan,
+        chat: {
+          limit: defaultLimits[plan as keyof typeof defaultLimits] || 10,
+          remaining: defaultLimits[plan as keyof typeof defaultLimits] || 10,
+          reset: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
+        },
+        upload: {
+          limit: 10,
+          remaining: 10,
+          reset: new Date(Date.now() + 60 * 60 * 1000).toISOString()
+        },
+        generation: {
+          limit: 50,
+          remaining: 50,
+          reset: new Date(Date.now() + 60 * 60 * 1000).toISOString()
+        }
+      })
+    }
     
   } catch (error) {
     return handleApiError(error)
