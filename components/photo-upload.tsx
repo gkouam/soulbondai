@@ -22,27 +22,36 @@ export function PhotoUpload({ onUpload, onCancel, maxSize = 5 }: PhotoUploadProp
     const file = e.target.files?.[0]
     if (!file) return
 
-    // Validate file type
-    if (!file.type.startsWith("image/")) {
+    // Validate file type with specific formats
+    const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp']
+    if (!allowedTypes.includes(file.type)) {
       toast({
         type: "error",
         title: "Invalid file type",
-        description: "Please select an image file"
+        description: `Please select a valid image file. Supported formats: JPG, PNG, GIF, WebP`
       })
       return
     }
 
-    // Validate file size
+    // Validate file size with more detail
+    const fileSizeMB = (file.size / (1024 * 1024)).toFixed(2)
     if (file.size > maxSize * 1024 * 1024) {
       toast({
         type: "error",
         title: "File too large",
-        description: `Please select an image smaller than ${maxSize}MB`
+        description: `Your image is ${fileSizeMB}MB. Please select an image smaller than ${maxSize}MB`
       })
       return
     }
 
     setSelectedFile(file)
+    
+    // Show file info
+    toast({
+      type: "info",
+      title: "Image selected",
+      description: `${file.name} (${fileSizeMB}MB)`
+    })
     
     // Create preview
     const reader = new FileReader()
@@ -66,37 +75,72 @@ export function PhotoUpload({ onUpload, onCancel, maxSize = 5 }: PhotoUploadProp
         body: formData
       })
 
+      const data = await response.json()
+
       if (!response.ok) {
-        const error = await response.json()
-        throw new Error(error.error || "Upload failed")
+        // Handle specific error cases with clear messages
+        if (response.status === 403) {
+          toast({
+            type: "warning",
+            title: "Upgrade Required",
+            description: "Photo sharing is a Premium feature. Upgrade your plan to send photos.",
+            action: {
+              label: "View Plans",
+              onClick: () => window.location.href = "/pricing"
+            }
+          })
+        } else if (response.status === 413 || data.error?.includes("too large")) {
+          const fileSizeMB = (selectedFile.size / (1024 * 1024)).toFixed(2)
+          toast({
+            type: "error",
+            title: "File Too Large",
+            description: `Your image (${fileSizeMB}MB) exceeds the 5MB limit. Please choose a smaller image.`
+          })
+        } else if (data.error?.includes("Invalid file type")) {
+          toast({
+            type: "error",
+            title: "Invalid File Type",
+            description: "Only JPG, PNG, GIF, and WebP images are supported."
+          })
+        } else if (response.status === 503 || data.error?.includes("not available")) {
+          toast({
+            type: "error",
+            title: "Service Unavailable",
+            description: "Photo upload service is temporarily unavailable. Please try again later."
+          })
+        } else if (response.status === 401) {
+          toast({
+            type: "error",
+            title: "Not Logged In",
+            description: "Please log in to upload photos."
+          })
+        } else {
+          // Generic error with the actual message
+          toast({
+            type: "error",
+            title: "Upload Failed",
+            description: data.error || "An unexpected error occurred. Please try again."
+          })
+        }
+        return
       }
 
-      const data = await response.json()
       onUpload(data.url)
       
       toast({
         type: "success",
-        title: "Photo uploaded",
-        description: "Your photo has been sent"
+        title: "Photo uploaded successfully!",
+        description: `${selectedFile.name} has been sent to your companion.`
       })
     } catch (error) {
       console.error("Upload error:", error)
       
-      const message = error instanceof Error ? error.message : "Failed to upload photo"
-      
-      if (message.includes("Premium")) {
-        toast({
-          type: "warning",
-          title: "Premium Feature",
-          description: "Photo uploads require a premium subscription"
-        })
-      } else {
-        toast({
-          type: "error",
-          title: "Upload failed",
-          description: message
-        })
-      }
+      // Network or parsing errors
+      toast({
+        type: "error",
+        title: "Connection Error",
+        description: "Could not connect to the server. Please check your internet connection and try again."
+      })
     } finally {
       setIsUploading(false)
     }
@@ -105,9 +149,14 @@ export function PhotoUpload({ onUpload, onCancel, maxSize = 5 }: PhotoUploadProp
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault()
     const file = e.dataTransfer.files[0]
-    if (file && file.type.startsWith("image/")) {
-      handleFileSelect({ target: { files: [file] } } as any)
-    }
+    if (!file) return
+
+    // Create a synthetic event to reuse validation logic
+    const syntheticEvent = {
+      target: { files: [file] }
+    } as React.ChangeEvent<HTMLInputElement>
+    
+    handleFileSelect(syntheticEvent)
   }
 
   const handleDragOver = (e: React.DragEvent) => {
