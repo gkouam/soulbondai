@@ -81,10 +81,12 @@ export async function middleware(request: NextRequest) {
   }
   
   const isAuthPage = request.nextUrl.pathname.startsWith("/auth/login") ||
-                     request.nextUrl.pathname.startsWith("/auth/register") ||
-                     request.nextUrl.pathname.startsWith("/auth/reset-password")
+                     request.nextUrl.pathname.startsWith("/auth/register")
+  
+  // Allow reset-password page for everyone (both authenticated and non-authenticated users)
+  const isResetPasswordPage = request.nextUrl.pathname.startsWith("/auth/reset-password")
 
-  // Redirect authenticated users away from auth pages
+  // Redirect authenticated users away from auth pages (except reset-password)
   if (isAuthPage && isAuth) {
     return NextResponse.redirect(new URL("/dashboard", request.url))
   }

@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation"
 import { motion } from "framer-motion"
 import { Lock, Eye, EyeOff, Mail, AlertCircle } from "lucide-react"
 import { AITechHeartLogo } from "@/components/ai-tech-heart-logo"
+import { AuthFooter } from "@/components/auth-footer"
 
 function ResetPasswordForm() {
   const router = useRouter()
@@ -239,6 +240,7 @@ function ResetPasswordForm() {
           </p>
         </div>
       </motion.div>
+      <AuthFooter />
     </div>
   )
 }
