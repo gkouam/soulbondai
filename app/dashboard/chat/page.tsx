@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from "react"
 import { useSession } from "next-auth/react"
 import { motion, AnimatePresence } from "framer-motion"
-import { Send, Smile, Heart, Sparkles, Volume2, VolumeX, Image as ImageIcon } from "lucide-react"
+import { Send, Smile, Heart, Sparkles, Volume2, VolumeX, Image as ImageIcon, Mic } from "lucide-react"
 import { usePusher } from "@/hooks/use-pusher"
 import { Message } from "@/components/message"
 import { TypingIndicator } from "@/components/typing-indicator"
@@ -15,6 +15,7 @@ import { useToast } from "@/components/ui/toast-provider"
 import { PhotoUpload } from "@/components/photo-upload"
 import { RateLimitIndicator } from "@/components/rate-limit-indicator"
 import { RateLimitBanner } from "@/components/rate-limit-banner"
+import { VoiceRecorder } from "@/components/voice-recorder"
 import { useKeyboardNavigation } from "@/hooks/use-keyboard-navigation"
 import { useOffline } from "@/hooks/use-offline"
 
@@ -32,6 +33,7 @@ export default function ChatPage() {
   const [voiceEnabled, setVoiceEnabled] = useState(false)
   const [selectedVoice, setSelectedVoice] = useState("alloy")
   const [showPhotoUpload, setShowPhotoUpload] = useState(false)
+  const [showVoiceRecorder, setShowVoiceRecorder] = useState(false)
   const [celebratingMilestone, setCelebratingMilestone] = useState<any>(null)
   const [upgradePrompt, setUpgradePrompt] = useState<any>(null)
   const [featureAccess, setFeatureAccess] = useState<Record<string, boolean>>({})
@@ -342,6 +344,89 @@ export default function ChatPage() {
     }
   }
   
+  const sendVoiceMessage = async (audioBlob: Blob, duration: number) => {
+    if (!session) return
+    
+    // Create form data for audio upload
+    const formData = new FormData()
+    formData.append('audio', audioBlob, 'voice-message.webm')
+    formData.append('duration', duration.toString())
+    
+    // Add optimistic voice message to chat
+    const userMessage = {
+      id: Date.now().toString(),
+      role: "user",
+      content: "🎤 Voice message",
+      type: "voice",
+      audioUrl: URL.createObjectURL(audioBlob),
+      duration: duration,
+      createdAt: new Date()
+    }
+    
+    setMessages(prev => [...prev, userMessage])
+    setShowVoiceRecorder(false)
+    setIsTyping(true)
+    
+    try {
+      // Upload and transcribe voice
+      const res = await fetch("/api/voice/upload", {
+        method: "POST",
+        body: formData
+      })
+      
+      if (res.ok) {
+        const data = await res.json()
+        
+        // Update message with transcription
+        setMessages(prev => prev.map(msg => 
+          msg.id === userMessage.id 
+            ? { ...msg, content: data.transcription, audioUrl: data.audioUrl }
+            : msg
+        ))
+        
+        // Send transcribed text to chat API
+        const chatRes = await fetch("/api/chat/message", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ 
+            content: data.transcription,
+            type: "voice",
+            audioUrl: data.audioUrl
+          })
+        })
+        
+        if (chatRes.ok) {
+          const chatData = await chatRes.json()
+          
+          // Check for voice response
+          if (chatData.voiceUrl) {
+            // AI responded with voice
+            setMessages(prev => [...prev, {
+              ...chatData.response,
+              type: "voice",
+              audioUrl: chatData.voiceUrl
+            }])
+          }
+        }
+      } else {
+        toast({
+          type: "error",
+          title: "Voice message failed",
+          description: "Could not process voice message. Please try again."
+        })
+      }
+    } catch (error) {
+      console.error("Voice message error:", error)
+      toast({
+        type: "error",
+        title: "Voice error",
+        description: "Failed to send voice message"
+      })
+    } finally {
+      setIsTyping(false)
+    }
+  }
+  
   const handleKeyPress = (e: React.KeyboardEvent) => {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault()
@@ -616,9 +701,26 @@ export default function ChatPage() {
           </div>
         )}
         
+        {showVoiceRecorder && (
+          <div className="mb-2">
+            <VoiceRecorder 
+              onSend={sendVoiceMessage}
+              disabled={rateLimitInfo && rateLimitInfo.remaining === 0}
+            />
+          </div>
+        )}
+        
         <div className="flex items-end space-x-1 sm:space-x-2">
           <button className="p-2.5 sm:p-2 hover:bg-gray-100 rounded-full transition min-w-[44px] min-h-[44px] sm:min-w-0 sm:min-h-0 flex items-center justify-center focus:outline-none focus:ring-2 focus:ring-purple-500" aria-label="Add emoji">
             <Smile className="w-6 h-6 text-gray-600" />
+          </button>
+          
+          <button 
+            onClick={() => setShowVoiceRecorder(!showVoiceRecorder)}
+            className="p-2.5 sm:p-2 hover:bg-gray-100 rounded-full transition min-w-[44px] min-h-[44px] sm:min-w-0 sm:min-h-0 flex items-center justify-center focus:outline-none focus:ring-2 focus:ring-purple-500" 
+            aria-label="Record voice message"
+          >
+            <Mic className={`w-6 h-6 ${showVoiceRecorder ? 'text-purple-600' : 'text-gray-600'}`} />
           </button>
           
           <div className="flex-grow">
