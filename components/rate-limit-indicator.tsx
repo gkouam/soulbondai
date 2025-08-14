@@ -48,18 +48,53 @@ export function RateLimitIndicator({ type = "chat" }: { type?: "chat" | "upload"
       const res = await fetch("/api/rate-limits")
       if (res.ok) {
         const data = await res.json()
-        setLimits(data)
+        // Transform the data to match expected structure
+        const transformedData = {
+          plan: data.plan || "free",
+          limits: {
+            chat: data.chat,
+            upload: data.upload,
+            generation: data.generation
+          }
+        }
+        setLimits(transformedData)
       }
     } catch (error) {
       console.error("Failed to load rate limits:", error)
+      // Set default values on error
+      setLimits({
+        plan: "free",
+        limits: {
+          chat: {
+            limit: 10,
+            remaining: 10,
+            reset: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
+          },
+          upload: {
+            limit: 10,
+            remaining: 10,
+            reset: new Date(Date.now() + 60 * 60 * 1000).toISOString()
+          },
+          generation: {
+            limit: 50,
+            remaining: 50,
+            reset: new Date(Date.now() + 60 * 60 * 1000).toISOString()
+          }
+        }
+      })
     } finally {
       setLoading(false)
     }
   }
   
-  if (loading || !limits || !limits.limits[type]) return null
+  if (loading || !limits || !limits.limits || !limits.limits[type]) return null
   
   const limit = limits.limits[type]!
+  
+  // Additional safety check
+  if (!limit || typeof limit.remaining === 'undefined' || typeof limit.limit === 'undefined') {
+    return null
+  }
   const percentage = (limit.remaining / limit.limit) * 100
   const isLow = percentage < 20
   const isEmpty = limit.remaining === 0
