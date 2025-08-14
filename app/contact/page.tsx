@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { motion } from 'framer-motion'
 import Link from 'next/link'
 import { Heart, Mail, MessageSquare, User, Send, Loader2, CheckCircle, AlertCircle } from 'lucide-react'
+import Footer from '@/components/footer'
 
 export default function ContactPage() {
   const [formData, setFormData] = useState({
@@ -290,6 +291,8 @@ export default function ContactPage() {
           </div>
         </div>
       </section>
+      
+      <Footer />
     </div>
   )
 }

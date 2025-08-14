@@ -2,6 +2,7 @@
 
 import { Suspense } from "react"
 import LandingContent from "./landing-content"
+import Footer from "@/components/footer"
 
 export default function LandingPage() {
   return (
@@ -10,7 +11,12 @@ export default function LandingPage() {
         <div className="animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-violet-500"></div>
       </div>
     }>
-      <LandingContent />
+      <div className="min-h-screen flex flex-col">
+        <main className="flex-grow">
+          <LandingContent />
+        </main>
+        <Footer />
+      </div>
     </Suspense>
   )
 }

@@ -6,6 +6,7 @@ import { useSession } from "next-auth/react"
 import { motion } from "framer-motion"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
+import Footer from "@/components/footer"
 import { Badge } from "@/components/ui/badge"
 import { Check, Heart, Sparkles, Crown, Zap, Shield, Brain, Info, Tag } from "lucide-react"
 import { cn } from "@/lib/utils"
@@ -354,6 +355,7 @@ export default function PricingPage() {
           </div>
         </motion.div>
       </div>
+      <Footer />
     </div>
   )
 }

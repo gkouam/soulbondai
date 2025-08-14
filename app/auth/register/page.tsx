@@ -13,6 +13,7 @@ import {
   registerBiometric
 } from "@/utils/biometric-auth"
 import { AITechHeartLogo } from "@/components/ai-tech-heart-logo"
+import { AuthFooter } from "@/components/auth-footer"
 import { useFormTracking } from "@/hooks/use-utm-tracking"
 import { trackSignUp } from "@/components/analytics/google-analytics"
 import { FacebookPixelEvents } from "@/components/analytics/facebook-pixel"
@@ -517,6 +518,7 @@ function RegisterPageContent() {
           </div>
         </motion.div>
       </div>
+      <AuthFooter />
     </div>
   )
 }

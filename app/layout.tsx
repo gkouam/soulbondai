@@ -7,7 +7,6 @@ import { generateMetadata } from "@/lib/metadata";
 import { KeyboardShortcutsHelp } from "@/components/keyboard-shortcuts-help";
 import { SkipNavigation } from "@/components/skip-navigation";
 import { OfflineIndicator } from "@/components/offline-indicator";
-import Footer from "@/components/footer";
 import GoogleAnalytics from "@/components/analytics/google-analytics";
 import FacebookPixel from "@/components/analytics/facebook-pixel";
 import { StructuredData } from "@/components/seo/structured-data";
@@ -47,12 +46,7 @@ export default function RootLayout({
         <Providers>
           <ReCaptchaProvider>
             <OfflineIndicator />
-            <div className="min-h-screen flex flex-col">
-              <main className="flex-grow">
-                {children}
-              </main>
-              <Footer />
-            </div>
+            {children}
             <KeyboardShortcutsHelp />
           </ReCaptchaProvider>
         </Providers>

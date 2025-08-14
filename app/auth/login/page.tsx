@@ -14,6 +14,7 @@ import {
   getBiometricEmailHint 
 } from "@/utils/biometric-auth"
 import { AITechHeartLogo } from "@/components/ai-tech-heart-logo"
+import { AuthFooter } from "@/components/auth-footer"
 
 function LoginForm() {
   const router = useRouter()
@@ -433,6 +434,7 @@ function LoginForm() {
           </div>
         </motion.div>
       </div>
+      <AuthFooter />
     </div>
   )
 }

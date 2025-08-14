@@ -3,6 +3,7 @@
 import { motion } from 'framer-motion'
 import Link from 'next/link'
 import { Heart, Brain, Shield, Sparkles, Users, Target, ArrowRight } from 'lucide-react'
+import Footer from '@/components/footer'
 
 export default function AboutPage() {
   return (
@@ -222,6 +223,8 @@ export default function AboutPage() {
           </motion.div>
         </div>
       </section>
+      
+      <Footer />
     </div>
   )
 }
