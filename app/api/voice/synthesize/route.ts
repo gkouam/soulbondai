@@ -7,6 +7,7 @@ import { prisma } from "@/lib/prisma"
 import { featureGate } from "@/lib/feature-gates"
 import { VOCAL_PERSONALITIES } from "@/lib/voice/personality-voices"
 import { SentimentVoiceModulator, EmotionalContext } from "@/lib/voice/sentiment-voice"
+import { getElevenLabsService } from "@/lib/elevenlabs"
 
 export async function POST(req: NextRequest) {
   try {
@@ -67,16 +68,46 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // Generate speech using OpenAI TTS with personality parameters
-    const mp3 = await openai.audio.speech.create({
-      model: "tts-1-hd", // Use HD model for better quality
-      voice: voiceParams.voice as any,
-      input: text,
-      speed: voiceParams.speed,
-    })
-
-    // Get the audio buffer
-    const buffer = Buffer.from(await mp3.arrayBuffer())
+    // Try ElevenLabs first for premium voice synthesis
+    const elevenLabs = getElevenLabsService()
+    let buffer: Buffer
+    
+    if (elevenLabs && process.env.ELEVENLABS_API_KEY) {
+      try {
+        // Use ElevenLabs for higher quality, personality-driven voices
+        buffer = await elevenLabs.synthesizeSpeech(
+          text,
+          userPersonality,
+          {
+            voice: voiceParams.voice,
+            pitch: voiceParams.pitch,
+            rate: voiceParams.speed,
+            emotion: emotionalContext?.userEmotion?.primaryEmotion,
+            emotionIntensity: emotionalContext?.userEmotion?.intensity || 0.5,
+            soundscape: vocalPersonality?.characteristics?.preferredSoundscape
+          }
+        )
+      } catch (error) {
+        console.error("ElevenLabs synthesis failed, falling back to OpenAI:", error)
+        // Fallback to OpenAI TTS
+        const mp3 = await openai.audio.speech.create({
+          model: "tts-1-hd",
+          voice: voiceParams.voice as any,
+          input: text,
+          speed: voiceParams.speed,
+        })
+        buffer = Buffer.from(await mp3.arrayBuffer())
+      }
+    } else {
+      // Use OpenAI TTS as default
+      const mp3 = await openai.audio.speech.create({
+        model: "tts-1-hd",
+        voice: voiceParams.voice as any,
+        input: text,
+        speed: voiceParams.speed,
+      })
+      buffer = Buffer.from(await mp3.arrayBuffer())
+    }
 
     // Return the audio file
     return new NextResponse(buffer, {
