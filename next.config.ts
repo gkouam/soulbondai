@@ -40,7 +40,7 @@ const nextConfig: NextConfig = {
               "style-src 'self' 'unsafe-inline'",
               "img-src 'self' data: blob: https: http:",
               "font-src 'self' data:",
-              "connect-src 'self' https://api.openai.com https://api.stripe.com wss://ws-us2.pusher.com wss://ws-us3.pusher.com https://sockjs-us2.pusher.com https://sockjs-us3.pusher.com https://*.pusher.com wss://*.pusher.com https://www.google-analytics.com https://analytics.google.com https://www.facebook.com",
+              "connect-src 'self' https://api.openai.com https://api.stripe.com wss://ws-us2.pusher.com wss://ws-us3.pusher.com https://sockjs-us2.pusher.com https://sockjs-us3.pusher.com https://www.google-analytics.com https://analytics.google.com https://www.facebook.com",
               "media-src 'self' blob:",
               "worker-src 'self' blob:",
               "frame-src https://js.stripe.com https://hooks.stripe.com",
