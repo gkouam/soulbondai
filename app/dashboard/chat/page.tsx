@@ -101,13 +101,25 @@ export default function ChatPage() {
         }
         
         if (rateLimitsRes.ok) {
-          const limitsData = await rateLimitsRes.json()
-          if (limitsData.chat) {
+          try {
+            const limitsData = await rateLimitsRes.json()
+            // Handle both possible response formats
+            if (limitsData && limitsData.chat) {
+              setRateLimitInfo({
+                limit: limitsData.chat.limit,
+                remaining: limitsData.chat.remaining,
+                reset: limitsData.chat.reset,
+                plan: limitsData.plan || "free"
+              })
+            }
+          } catch (error) {
+            console.error("Failed to parse rate limits:", error)
+            // Set default values if rate limits fail
             setRateLimitInfo({
-              limit: limitsData.chat.limit,
-              remaining: limitsData.chat.remaining,
-              reset: limitsData.chat.reset,
-              plan: limitsData.plan || "free"
+              limit: 10,
+              remaining: 10,
+              reset: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
+              plan: "free"
             })
           }
         }
@@ -383,7 +395,7 @@ export default function ChatPage() {
   return (
     <div id="main-content" className="flex flex-col h-screen bg-gray-50" role="main">
       {/* Rate Limit Banner */}
-      {rateLimitInfo && (
+      {rateLimitInfo && rateLimitInfo.remaining !== undefined && (
         <RateLimitBanner
           remaining={rateLimitInfo.remaining}
           limit={rateLimitInfo.limit}
@@ -561,7 +573,7 @@ export default function ChatPage() {
       {/* Input */}
       <div className="bg-white border-t border-gray-200 px-3 sm:px-4 py-2 sm:py-3 safe-area-inset-bottom" role="region" aria-label="Message input">
         {/* Message Counter */}
-        {rateLimitInfo && rateLimitInfo.plan !== "ultimate" && (
+        {rateLimitInfo && rateLimitInfo.remaining !== undefined && rateLimitInfo.plan !== "ultimate" && (
           <div className="flex items-center justify-between mb-2 px-2">
             <div className="text-xs text-gray-500">
               {rateLimitInfo.remaining > 0 ? (
