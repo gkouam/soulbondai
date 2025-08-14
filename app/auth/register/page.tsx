@@ -1,11 +1,12 @@
 "use client"
 
-import { useState, useEffect, Suspense } from "react"
+import { useState, useEffect, Suspense, useCallback } from "react"
 import { useRouter } from "next/navigation"
 import { signIn } from "next-auth/react"
 import { motion, AnimatePresence } from "framer-motion"
-import { Eye, EyeOff, Mail, Lock, User, ArrowLeft, AlertCircle, CheckCircle, Fingerprint } from "lucide-react"
+import { Eye, EyeOff, Mail, Lock, User, ArrowLeft, AlertCircle, CheckCircle, Fingerprint, Shield } from "lucide-react"
 import Link from "next/link"
+import { useGoogleReCaptcha } from "react-google-recaptcha-v3"
 import { isAppleDevice, isMobileDevice, triggerHapticFeedback } from "@/utils/device-detection"
 import { 
   isBiometricAvailable,
@@ -19,6 +20,7 @@ import { FacebookPixelEvents } from "@/components/analytics/facebook-pixel"
 function RegisterPageContent() {
   const router = useRouter()
   const { trackFormSubmission } = useFormTracking('register')
+  const { executeRecaptcha } = useGoogleReCaptcha()
   const [isLoading, setIsLoading] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
   const [showAppleSignIn, setShowAppleSignIn] = useState(false)
@@ -90,7 +92,7 @@ function RegisterPageContent() {
     return true
   }
   
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = useCallback(async (e: React.FormEvent) => {
     e.preventDefault()
     
     if (!validateForm()) {
@@ -109,13 +111,24 @@ function RegisterPageContent() {
     }
     
     try {
+      // Execute reCAPTCHA v3
+      let recaptchaToken: string | undefined
+      if (executeRecaptcha) {
+        try {
+          recaptchaToken = await executeRecaptcha('register')
+        } catch (error) {
+          console.error("reCAPTCHA execution failed:", error)
+          // Continue without reCAPTCHA token in development
+        }
+      }
+      
       // Track form submission with UTM data
       const enrichedData = trackFormSubmission({
         name: formData.name,
         email: formData.email,
       })
       
-      // Register user
+      // Register user with reCAPTCHA token
       const res = await fetch("/api/auth/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -123,6 +136,7 @@ function RegisterPageContent() {
           name: formData.name,
           email: formData.email,
           password: formData.password,
+          recaptchaToken,
           ...enrichedData
         })
       })
@@ -183,7 +197,7 @@ function RegisterPageContent() {
     } finally {
       setIsLoading(false)
     }
-  }
+  }, [executeRecaptcha, formData, isMobile, router, showPassword, enableBiometric, canUseBiometric, trackFormSubmission])
   
   const handleOAuthSignIn = async (provider: string) => {
     setIsLoading(true)
@@ -490,6 +504,14 @@ function RegisterPageContent() {
                 >
                   Sign in
                 </Link>
+              </p>
+            </div>
+            
+            {/* reCAPTCHA Badge Notice */}
+            <div className="mt-4 text-center">
+              <p className="text-xs text-gray-500 flex items-center justify-center gap-1">
+                <Shield className="w-3 h-3" />
+                Protected by reCAPTCHA
               </p>
             </div>
           </div>

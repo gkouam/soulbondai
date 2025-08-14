@@ -4,23 +4,76 @@ import { z } from "zod"
 import { prisma } from "@/lib/prisma"
 import { sendWelcomeEmail } from "@/lib/email/resend"
 import { AuditLogger, AuditAction } from "@/lib/audit-logger"
+import { verifyRecaptcha, isSuspiciousRequest } from "@/lib/recaptcha"
 
 const registerSchema = z.object({
   email: z.string().email(),
   password: z.string().min(8),
   name: z.string().optional(),
+  recaptchaToken: z.string().optional(),
 })
 
 export async function POST(req: Request) {
   try {
     const body = await req.json()
-    const { email, password, name } = registerSchema.parse(body)
+    const { email, password, name, recaptchaToken } = registerSchema.parse(body)
     
     // Get IP and user agent for audit logging
     const ipAddress = req.headers.get('x-forwarded-for') || 
                      req.headers.get('x-real-ip') || 
                      'unknown'
     const userAgent = req.headers.get('user-agent') || 'unknown'
+
+    // Verify reCAPTCHA token
+    if (recaptchaToken) {
+      const recaptchaResult = await verifyRecaptcha(recaptchaToken, "register")
+      
+      if (!recaptchaResult.success) {
+        // Log failed registration attempt
+        await AuditLogger.log({
+          action: AuditAction.USER_REGISTER,
+          userId: null,
+          metadata: { 
+            email, 
+            reason: "reCAPTCHA failed",
+            score: recaptchaResult.score,
+            errors: recaptchaResult.errors
+          },
+          ipAddress,
+          userAgent,
+          success: false
+        })
+
+        return NextResponse.json(
+          { error: "Bot detection failed. Please try again." },
+          { status: 403 }
+        )
+      }
+
+      // Log reCAPTCHA score for monitoring
+      console.log(`Registration reCAPTCHA score for ${email}: ${recaptchaResult.score}`)
+    }
+
+    // Additional bot detection
+    const headers = new Headers(req.headers)
+    if (isSuspiciousRequest(headers)) {
+      await AuditLogger.log({
+        action: AuditAction.USER_REGISTER,
+        userId: null,
+        metadata: { 
+          email, 
+          reason: "Suspicious request patterns detected"
+        },
+        ipAddress,
+        userAgent,
+        success: false
+      })
+
+      return NextResponse.json(
+        { error: "Registration blocked. Please use a standard web browser." },
+        { status: 403 }
+      )
+    }
 
     // Check if user already exists
     const existingUser = await prisma.user.findUnique({

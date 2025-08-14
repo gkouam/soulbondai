@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
 import { Providers } from "@/components/providers";
+import { ReCaptchaProvider } from "@/components/recaptcha-provider";
 import { generateMetadata } from "@/lib/metadata";
 import { KeyboardShortcutsHelp } from "@/components/keyboard-shortcuts-help";
 import { SkipNavigation } from "@/components/skip-navigation";
@@ -44,14 +45,16 @@ export default function RootLayout({
         <GoogleAnalytics />
         <FacebookPixel />
         <Providers>
-          <OfflineIndicator />
-          <div className="min-h-screen flex flex-col">
-            <main className="flex-grow">
-              {children}
-            </main>
-            <Footer />
-          </div>
-          <KeyboardShortcutsHelp />
+          <ReCaptchaProvider>
+            <OfflineIndicator />
+            <div className="min-h-screen flex flex-col">
+              <main className="flex-grow">
+                {children}
+              </main>
+              <Footer />
+            </div>
+            <KeyboardShortcutsHelp />
+          </ReCaptchaProvider>
         </Providers>
       </body>
     </html>
