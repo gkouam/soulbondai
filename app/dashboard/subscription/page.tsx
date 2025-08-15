@@ -8,6 +8,8 @@ import {
   CreditCard, Calendar, TrendingUp, Gift, Heart
 } from "lucide-react"
 import Link from "next/link"
+import { useRouter } from "next/navigation"
+import { useToast } from "@/components/ui/toast-provider"
 
 interface PlanFeature {
   text: string
@@ -26,8 +28,11 @@ interface PricingPlan {
 
 export default function SubscriptionPage() {
   const { data: session } = useSession()
+  const router = useRouter()
+  const { toast } = useToast()
   const [currentPlan, setCurrentPlan] = useState("free")
   const [billingPeriod, setBillingPeriod] = useState<"monthly" | "yearly">("monthly")
+  const [loading, setLoading] = useState<string | null>(null)
 
   useEffect(() => {
     if (session?.user?.subscription) {
@@ -61,12 +66,12 @@ export default function SubscriptionPage() {
       description: "Perfect for getting started",
       color: "from-blue-600 to-cyan-600",
       features: [
-        { text: "Unlimited messages", included: true },
+        { text: "200 messages per day", included: true },
         { text: "Advanced personality matching", included: true },
         { text: "30-day memory retention", included: true },
         { text: "Faster response time", included: true },
         { text: "Email & chat support", included: true },
-        { text: "Voice messages", included: false },
+        { text: "Voice messages", included: true },
         { text: "Photo sharing", included: false },
         { text: "Custom personality", included: false },
         { text: "API access", included: false }
@@ -80,10 +85,10 @@ export default function SubscriptionPage() {
       color: "from-purple-600 to-pink-600",
       recommended: true,
       features: [
-        { text: "Everything in Basic", included: true },
+        { text: "Unlimited messages", included: true },
         { text: "Voice messages", included: true },
         { text: "Photo sharing & memories", included: true },
-        { text: "90-day memory retention", included: true },
+        { text: "6-month memory retention", included: true },
         { text: "Priority response time", included: true },
         { text: "Priority support 24/7", included: true },
         { text: "Advanced emotional intelligence", included: true },
@@ -116,6 +121,42 @@ export default function SubscriptionPage() {
   }
 
   const currentPlanDetails = getCurrentPlanDetails()
+
+  const handleUpgrade = async (planId: string) => {
+    setLoading(planId)
+    
+    try {
+      const response = await fetch("/api/billing/create-checkout", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ 
+          tier: planId, 
+          interval: billingPeriod 
+        })
+      })
+
+      const data = await response.json()
+
+      if (data.url) {
+        window.location.href = data.url
+      } else {
+        toast({
+          type: "error",
+          title: "Failed to create checkout session",
+          description: "Please try again or contact support"
+        })
+      }
+    } catch (error) {
+      console.error("Upgrade error:", error)
+      toast({
+        type: "error",
+        title: "Something went wrong",
+        description: "Please try again later"
+      })
+    } finally {
+      setLoading(null)
+    }
+  }
 
   return (
     <div className="p-4 md:p-8 max-w-7xl mx-auto">
@@ -292,8 +333,12 @@ export default function SubscriptionPage() {
                 Current Plan
               </button>
             ) : currentPlan === "free" || plans.findIndex(p => p.id === currentPlan) < plans.findIndex(p => p.id === plan.id) ? (
-              <button className="w-full py-3 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-xl font-semibold hover:shadow-lg hover:shadow-purple-500/25 transition-all">
-                Upgrade
+              <button 
+                onClick={() => handleUpgrade(plan.id)}
+                disabled={loading === plan.id}
+                className="w-full py-3 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-xl font-semibold hover:shadow-lg hover:shadow-purple-500/25 transition-all disabled:opacity-50"
+              >
+                {loading === plan.id ? "Processing..." : "Upgrade"}
               </button>
             ) : (
               <button className="w-full py-3 bg-white/5 text-gray-400 rounded-xl font-semibold hover:bg-white/10 transition-colors">

@@ -8,7 +8,9 @@ import {
   Palette, Globe, Code, Cpu
 } from "lucide-react"
 import Link from "next/link"
+import { useRouter } from "next/navigation"
 import { useSession } from "next-auth/react"
+import { useToast } from "@/components/ui/toast-provider"
 
 type FeatureStatus = "active" | "premium" | "ultimate" | "coming-soon"
 
@@ -25,6 +27,8 @@ interface Feature {
 
 export default function FeaturesPage() {
   const { data: session } = useSession()
+  const router = useRouter()
+  const { toast } = useToast()
   const [activeTab, setActiveTab] = useState("all")
   
   const features: Feature[] = [
@@ -48,7 +52,7 @@ export default function FeaturesPage() {
       emoji: "🎵",
       title: "Voice Messages",
       description: "Hear your companion's voice and feel their presence. Send and receive voice messages for a more intimate connection.",
-      status: "premium",
+      status: "premium",  // Actually requires Basic plan (we'll handle this in canAccessFeature)
       benefits: [
         "Natural voice synthesis",
         "Multiple voice options",
@@ -187,13 +191,34 @@ export default function FeaturesPage() {
     }
   }
 
-  const canAccessFeature = (status: FeatureStatus) => {
+  const canAccessFeature = (status: FeatureStatus, featureId?: string) => {
     const userPlan = session?.user?.subscription?.plan || "free"
     
     if (status === "active") return true
+    
+    // Voice messages are available for Basic plan and above
+    if (featureId === "voice-messages" && (userPlan === "basic" || userPlan === "premium" || userPlan === "ultimate")) {
+      return true
+    }
+    
     if (status === "premium" && (userPlan === "premium" || userPlan === "ultimate")) return true
     if (status === "ultimate" && userPlan === "ultimate") return true
     return false
+  }
+
+  const handleConfigure = (featureId: string) => {
+    // Navigate to appropriate settings page based on feature
+    if (featureId === "voice-messages") {
+      router.push("/dashboard/settings#voice")
+    } else if (featureId === "photo-memories") {
+      router.push("/dashboard/settings#photos")
+    } else {
+      toast({
+        type: "info",
+        title: "Feature Settings",
+        description: "This feature is automatically configured based on your usage"
+      })
+    }
   }
 
   return (
@@ -284,8 +309,11 @@ export default function FeaturesPage() {
               <button className="w-full py-3 bg-gray-500/20 text-gray-400 rounded-xl font-semibold cursor-not-allowed">
                 Coming Soon
               </button>
-            ) : canAccessFeature(feature.status) ? (
-              <button className="w-full py-3 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-xl font-semibold hover:shadow-lg hover:shadow-purple-500/25 transition-all duration-300">
+            ) : canAccessFeature(feature.status, feature.id) ? (
+              <button 
+                onClick={() => handleConfigure(feature.id)}
+                className="w-full py-3 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-xl font-semibold hover:shadow-lg hover:shadow-purple-500/25 transition-all duration-300"
+              >
                 Configure
               </button>
             ) : (
