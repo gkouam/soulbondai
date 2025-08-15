@@ -12,14 +12,15 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
-    // Check if user has premium subscription for file uploads
+    // Check if user has appropriate subscription for file uploads
     const subscription = await prisma.subscription.findUnique({
       where: { userId: session.user.id }
     })
 
-    if (!subscription || subscription.plan === "free" || subscription.plan === "basic") {
+    // Basic plan and above can upload files
+    if (!subscription || subscription.plan === "free") {
       return NextResponse.json(
-        { error: "File uploads require Premium subscription or higher" },
+        { error: "File uploads require Basic subscription or higher" },
         { status: 403 }
       )
     }
