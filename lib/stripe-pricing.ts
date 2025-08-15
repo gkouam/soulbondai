@@ -247,7 +247,12 @@ export async function createDynamicCheckoutSession(
   
   const user = await prisma.user.findUnique({
     where: { id: userId },
-    select: { email: true, stripeCustomerId: true }
+    select: { 
+      email: true,
+      subscription: {
+        select: { stripeCustomerId: true }
+      }
+    }
   })
   
   if (!user) {
@@ -255,7 +260,7 @@ export async function createDynamicCheckoutSession(
   }
   
   // Create or get Stripe customer
-  let customerId = user.stripeCustomerId
+  let customerId = user.subscription?.stripeCustomerId
   
   if (!customerId) {
     const customer = await stripe!.customers.create({
@@ -264,9 +269,18 @@ export async function createDynamicCheckoutSession(
     })
     customerId = customer.id
     
-    await prisma.user.update({
-      where: { id: userId },
-      data: { stripeCustomerId: customerId }
+    // Update or create subscription record with customer ID
+    await prisma.subscription.upsert({
+      where: { userId },
+      create: {
+        userId,
+        stripeCustomerId: customerId,
+        plan: "free",
+        status: "active"
+      },
+      update: {
+        stripeCustomerId: customerId
+      }
     })
   }
   
