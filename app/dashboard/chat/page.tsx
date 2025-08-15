@@ -116,12 +116,20 @@ export default function ChatPage() {
                   plan: limitsData.plan || "free"
                 })
               } else {
-                // Set default values if structure is unexpected
+                // Set default values based on plan if structure is unexpected
+                const planLimits = {
+                  free: 50,
+                  basic: 200,
+                  premium: 999999,
+                  ultimate: 999999
+                }
+                const userPlan = limitsData.plan || session?.user?.subscription?.plan || "free"
+                const defaultLimit = planLimits[userPlan as keyof typeof planLimits] || 50
                 setRateLimitInfo({
-                  limit: 10,
-                  remaining: 10,
+                  limit: defaultLimit,
+                  remaining: defaultLimit,
                   reset: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
-                  plan: limitsData.plan || "free"
+                  plan: userPlan
                 })
               }
             }
