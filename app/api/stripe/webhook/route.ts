@@ -29,14 +29,27 @@ export async function POST(request: Request) {
       case "checkout.session.completed": {
         const session = event.data.object as Stripe.Checkout.Session
         
-        // Update subscription
-        await prisma.subscription.update({
-          where: { stripeCustomerId: session.customer as string },
-          data: {
+        // Update or create subscription
+        await prisma.subscription.upsert({
+          where: { 
+            userId: session.metadata!.userId 
+          },
+          create: {
+            userId: session.metadata!.userId,
+            stripeCustomerId: session.customer as string,
             stripeSubscriptionId: session.subscription as string,
-            plan: session.metadata!.plan,
+            stripePriceId: session.metadata!.priceId || "",
+            plan: session.metadata!.tier || session.metadata!.plan,
             status: "active",
-            currentPeriodEnd: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000) // 30 days
+            currentPeriodEnd: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
+          },
+          update: {
+            stripeCustomerId: session.customer as string,
+            stripeSubscriptionId: session.subscription as string,
+            stripePriceId: session.metadata!.priceId || "",
+            plan: session.metadata!.tier || session.metadata!.plan,
+            status: "active",
+            currentPeriodEnd: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
           }
         })
         

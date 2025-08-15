@@ -4,6 +4,8 @@ import { authOptions } from "@/lib/auth"
 import { handleApiError, AppError } from "@/lib/error-handling"
 import { prisma } from "@/lib/prisma"
 import { featureGate } from "@/lib/feature-gates"
+import { checkVoiceLimit, subscriptionLimits } from "@/lib/subscription-limits"
+import { trackUsage } from "@/lib/stripe-pricing"
 import { uploadToCloudinary } from "@/lib/cloudinary"
 import { getOpenAIClient } from "@/lib/vector-store"
 
@@ -23,9 +25,29 @@ export async function POST(req: NextRequest) {
     const formData = await req.formData()
     const audioFile = formData.get("audio") as File
     const conversationId = formData.get("conversationId") as string
+    const duration = parseInt(formData.get("duration") as string || "1") // Duration in seconds
 
     if (!audioFile || !conversationId) {
       throw new AppError("Missing audio file or conversation ID", 400)
+    }
+
+    // Calculate minutes for voice limit check
+    const minutes = Math.ceil(duration / 60)
+    
+    // Check voice usage limits
+    try {
+      await checkVoiceLimit(session.user.id, minutes)
+    } catch (error: any) {
+      const canUse = await subscriptionLimits.canUseVoice(session.user.id, minutes)
+      throw new AppError(
+        error.message,
+        429,
+        "VOICE_LIMIT_EXCEEDED",
+        {
+          remaining: canUse.remaining,
+          upgradeUrl: '/pricing'
+        }
+      )
     }
 
     // Validate file size (max 10MB)
@@ -96,6 +118,9 @@ export async function POST(req: NextRequest) {
       }
     })
 
+    // Track voice usage for billing
+    await trackUsage(session.user.id, "voice", minutes)
+
     // Update user metrics
     await prisma.profile.update({
       where: { userId: session.user.id },
@@ -104,6 +129,9 @@ export async function POST(req: NextRequest) {
         lastInteraction: new Date()
       }
     })
+    
+    // Get remaining voice minutes
+    const canUse = await subscriptionLimits.canUseVoice(session.user.id)
 
     return NextResponse.json({
       success: true,
@@ -112,6 +140,10 @@ export async function POST(req: NextRequest) {
         audioUrl: uploadResult.secure_url,
         transcription,
         createdAt: message.createdAt
+      },
+      usage: {
+        minutesUsed: minutes,
+        remaining: canUse.remaining || 0
       }
     })
 

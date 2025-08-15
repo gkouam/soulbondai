@@ -3,6 +3,8 @@ import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
 import { handleApiError, AppError } from "@/lib/error-handling"
 import { featureGate } from "@/lib/feature-gates"
+import { checkPhotoLimit, subscriptionLimits } from "@/lib/subscription-limits"
+import { trackUsage } from "@/lib/stripe-pricing"
 import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3"
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner"
 import crypto from "crypto"
@@ -26,6 +28,22 @@ export async function POST(req: NextRequest) {
     const access = await featureGate.checkAndLog(session.user.id, "photo_sharing")
     if (!access.allowed) {
       throw new AppError(access.message || "Photo sharing not available", 403, "FEATURE_LOCKED")
+    }
+
+    // Check photo usage limits
+    try {
+      await checkPhotoLimit(session.user.id)
+    } catch (error: any) {
+      const canShare = await subscriptionLimits.canSharePhoto(session.user.id)
+      throw new AppError(
+        error.message,
+        429,
+        "PHOTO_LIMIT_EXCEEDED",
+        {
+          remaining: canShare.remaining,
+          upgradeUrl: '/pricing'
+        }
+      )
     }
 
     const formData = await req.formData()
@@ -75,15 +93,19 @@ export async function POST(req: NextRequest) {
     )
 
     // Track usage
-    await import("@/lib/stripe-pricing").then(({ trackUsage }) => 
-      trackUsage(session.user.id, "photo", 1)
-    )
+    await trackUsage(session.user.id, "photo", 1)
+    
+    // Get remaining photo uploads
+    const canShare = await subscriptionLimits.canSharePhoto(session.user.id)
 
     return NextResponse.json({
       url,
       fileName,
       size: file.size,
-      type: file.type
+      type: file.type,
+      usage: {
+        remaining: canShare.remaining || 0
+      }
     })
 
   } catch (error) {

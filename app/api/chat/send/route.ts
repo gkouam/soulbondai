@@ -3,6 +3,8 @@ import { getServerSession } from 'next-auth/next'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { queueManager } from '@/lib/queue/queue-manager'
+import { checkMessageLimit, subscriptionLimits } from '@/lib/subscription-limits'
+import { trackUsage } from '@/lib/stripe-pricing'
 import { z } from 'zod'
 
 const sendMessageSchema = z.object({
@@ -23,6 +25,24 @@ export async function POST(req: Request) {
 
     const body = await req.json()
     const { conversationId, message, characterId } = sendMessageSchema.parse(body)
+
+    // Check message limits before proceeding
+    try {
+      await checkMessageLimit(session.user.id)
+    } catch (error: any) {
+      // Check if user can send message and get details
+      const canSend = await subscriptionLimits.canSendMessage(session.user.id)
+      return NextResponse.json(
+        { 
+          error: error.message,
+          limitReached: true,
+          remaining: canSend.remaining || 0,
+          resetAt: canSend.resetAt,
+          upgradeUrl: '/pricing'
+        },
+        { status: 429 }
+      )
+    }
 
     // Verify conversation belongs to user
     const conversation = await prisma.conversation.findFirst({
@@ -63,6 +83,9 @@ export async function POST(req: Request) {
       }
     })
 
+    // Track usage for billing
+    await trackUsage(session.user.id, "message", 1)
+
     // Queue AI response generation
     const job = await queueManager.addAIGenerationJob({
       conversationId,
@@ -77,6 +100,9 @@ export async function POST(req: Request) {
       priority: conversation.messages.length === 0 ? 1 : 2, // Higher priority for first message
     })
 
+    // Get remaining messages for today
+    const canSend = await subscriptionLimits.canSendMessage(session.user.id)
+
     // Return immediately with job info
     return NextResponse.json({
       success: true,
@@ -89,6 +115,10 @@ export async function POST(req: Request) {
       job: {
         id: job.id,
         status: 'queued',
+      },
+      usage: {
+        remaining: canSend.remaining,
+        resetAt: canSend.resetAt
       }
     })
   } catch (error) {
