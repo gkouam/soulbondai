@@ -6,7 +6,8 @@ import { useEffect, useState } from "react"
 import { motion } from "framer-motion"
 import { 
   MessageCircle, Heart, Flame, Star, TrendingUp, 
-  Calendar, Award, Zap, Gift, Clock, Activity
+  Calendar, Award, Zap, Gift, Clock, Activity,
+  Video, Sparkles
 } from "lucide-react"
 import Link from "next/link"
 
@@ -261,7 +262,7 @@ export default function DashboardPage() {
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5, delay: 0.6 }}
-        className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-8"
+        className="grid grid-cols-1 md:grid-cols-4 gap-6 mt-8"
       >
         <Link href="/dashboard/chat" className="glass-bg rounded-2xl p-6 hover:bg-white/10 transition-all duration-300 group block">
           <div className="flex items-center justify-between mb-4">
@@ -270,6 +271,18 @@ export default function DashboardPage() {
           </div>
           <h3 className="text-xl font-semibold mb-2">Continue Chat</h3>
           <p className="text-gray-400 text-sm">Pick up where you left off with {companionName}</p>
+        </Link>
+
+        <Link href="/dashboard/video-date" className="glass-bg rounded-2xl p-6 hover:bg-white/10 transition-all duration-300 group block relative overflow-hidden">
+          <div className="absolute top-0 right-0 bg-gradient-to-br from-pink-500 to-purple-600 text-white text-xs px-2 py-1 rounded-bl-lg">
+            NEW
+          </div>
+          <div className="flex items-center justify-between mb-4">
+            <Video className="w-8 h-8 text-pink-500" />
+            <Sparkles className="w-6 h-6 text-yellow-400 animate-pulse" />
+          </div>
+          <h3 className="text-xl font-semibold mb-2">Virtual Dates</h3>
+          <p className="text-gray-400 text-sm">Experience magical moments together</p>
         </Link>
 
         <Link href="/dashboard/features" className="glass-bg rounded-2xl p-6 hover:bg-white/10 transition-all duration-300 group block">
