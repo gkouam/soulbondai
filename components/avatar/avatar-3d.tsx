@@ -13,6 +13,19 @@ interface Avatar3DProps {
   onReady?: () => void
 }
 
+// Placeholder component for SSR compatibility
+function Avatar3DPlaceholder() {
+  return (
+    <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-purple-900 to-pink-900 rounded-xl">
+      <motion.div
+        animate={{ rotate: 360 }}
+        transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
+        className="w-16 h-16 border-4 border-white border-t-transparent rounded-full"
+      />
+    </div>
+  )
+}
+
 export function Avatar3D({
   personality,
   emotion,
@@ -27,7 +40,7 @@ export function Avatar3D({
   const avatarPersonality = AVATAR_PERSONALITIES[personality] || AVATAR_PERSONALITIES['The Gentle']
   
   useEffect(() => {
-    if (!canvasRef.current) return
+    if (!canvasRef.current || typeof window === 'undefined') return
     
     // Initialize Three.js scene
     const initScene = async () => {

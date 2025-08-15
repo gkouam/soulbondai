@@ -19,7 +19,7 @@ import {
   Camera,
   Share2
 } from 'lucide-react'
-import { Avatar3D } from '@/components/avatar/avatar-3d'
+import { AvatarSimple } from '@/components/avatar/avatar-simple'
 import { VirtualDateEnvironment } from '@/components/dates/virtual-date-environment'
 import { VoiceEmotionDetector, VoiceEmotionData } from '@/lib/voice/emotion-detector'
 import { DATE_EXPERIENCES } from '@/lib/video/interactive-dates'
@@ -259,11 +259,10 @@ export default function VideoDatePage() {
             <>
               {/* Remote Video (AI Avatar) */}
               <div className="absolute inset-0 bg-black" ref={remoteVideoRef}>
-                <Avatar3D
+                <AvatarSimple
                   personality={personality}
                   emotion={currentEmotion || undefined}
                   speaking={!isMuted}
-                  gazeTarget={{ x: 0.5, y: 0.5 }}
                 />
               </div>
               

@@ -21,7 +21,7 @@ import {
   Waves
 } from 'lucide-react'
 import { DATE_EXPERIENCES, DateExperience, InteractiveDate } from '@/lib/video/interactive-dates'
-import { Avatar3D } from '@/components/avatar/avatar-3d'
+import { AvatarSimple } from '@/components/avatar/avatar-simple'
 import { VoiceEmotionData } from '@/lib/voice/emotion-detector'
 
 interface VirtualDateEnvironmentProps {
@@ -205,11 +205,10 @@ export function VirtualDateEnvironment({
       
       {/* Avatar Layer */}
       <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-96 h-96">
-        <Avatar3D
+        <AvatarSimple
           personality={personality}
           emotion={emotion}
           speaking={isInteracting}
-          gazeTarget={{ x: 0.5, y: 0.5 }}
         />
       </div>
       
