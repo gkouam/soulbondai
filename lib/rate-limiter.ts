@@ -58,29 +58,29 @@ export const rateLimiters = {
   chat: {
     free: createRateLimiter({
       limiter: redis 
-        ? Ratelimit.slidingWindow(parseInt(process.env.RATE_LIMIT_FREE_DAILY || "10"), "1 d") 
-        : MemoryRatelimit.slidingWindow(parseInt(process.env.RATE_LIMIT_FREE_DAILY || "10"), "1 d"),
+        ? Ratelimit.slidingWindow(parseInt(process.env.RATE_LIMIT_FREE_DAILY || "50"), "1 d") 
+        : MemoryRatelimit.slidingWindow(parseInt(process.env.RATE_LIMIT_FREE_DAILY || "50"), "1 d"),
       analytics: true,
       prefix: "ratelimit:chat:free",
     }),
     basic: createRateLimiter({
       limiter: redis 
-        ? Ratelimit.slidingWindow(parseInt(process.env.RATE_LIMIT_BASIC_DAILY || "50"), "1 d")
-        : MemoryRatelimit.slidingWindow(parseInt(process.env.RATE_LIMIT_BASIC_DAILY || "50"), "1 d"),
+        ? Ratelimit.slidingWindow(parseInt(process.env.RATE_LIMIT_BASIC_DAILY || "200"), "1 d")
+        : MemoryRatelimit.slidingWindow(parseInt(process.env.RATE_LIMIT_BASIC_DAILY || "200"), "1 d"),
       analytics: true,
       prefix: "ratelimit:chat:basic",
     }),
     premium: createRateLimiter({
       limiter: redis 
-        ? Ratelimit.slidingWindow(parseInt(process.env.RATE_LIMIT_PREMIUM_DAILY || "100"), "1 d")
-        : MemoryRatelimit.slidingWindow(parseInt(process.env.RATE_LIMIT_PREMIUM_DAILY || "100"), "1 d"),
+        ? Ratelimit.slidingWindow(parseInt(process.env.RATE_LIMIT_PREMIUM_DAILY || "999999"), "1 d")
+        : MemoryRatelimit.slidingWindow(parseInt(process.env.RATE_LIMIT_PREMIUM_DAILY || "999999"), "1 d"),
       analytics: true,
       prefix: "ratelimit:chat:premium",
     }),
     ultimate: createRateLimiter({
       limiter: redis 
-        ? Ratelimit.slidingWindow(parseInt(process.env.RATE_LIMIT_ULTIMATE_DAILY || "200"), "1 d")
-        : MemoryRatelimit.slidingWindow(parseInt(process.env.RATE_LIMIT_ULTIMATE_DAILY || "200"), "1 d"),
+        ? Ratelimit.slidingWindow(parseInt(process.env.RATE_LIMIT_ULTIMATE_DAILY || "999999"), "1 d")
+        : MemoryRatelimit.slidingWindow(parseInt(process.env.RATE_LIMIT_ULTIMATE_DAILY || "999999"), "1 d"),
       analytics: true,
       prefix: "ratelimit:chat:ultimate",
     }),

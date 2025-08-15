@@ -35,10 +35,10 @@ export async function GET() {
       
       // Return default limits based on plan
       const defaultLimits = {
-        free: 10,
-        basic: 50,
-        premium: 100,
-        ultimate: 200
+        free: 50,      // 50 messages per day for free
+        basic: 200,    // 200 messages per day for basic
+        premium: 999999, // Unlimited for premium
+        ultimate: 999999 // Unlimited for ultimate
       }
       
       return NextResponse.json({

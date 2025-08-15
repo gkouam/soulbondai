@@ -65,16 +65,16 @@ export const features: Record<string, Feature> = {
     name: "Voice Messages",
     description: "Send and receive voice messages",
     requiredPlan: "basic",
-    category: "media",
-    trustLevelRequired: 20
+    category: "media"
+    // Removed trustLevelRequired - Basic plan users should have immediate access
   },
   photo_sharing: {
     id: "photo_sharing",
     name: "Photo Sharing",
     description: "Share photos with your companion",
-    requiredPlan: "premium",
-    category: "media",
-    trustLevelRequired: 40
+    requiredPlan: "basic",  // Changed from premium to basic - you mentioned this should be available
+    category: "media"
+    // Removed trustLevelRequired
   },
   video_calls: {
     id: "video_calls",
