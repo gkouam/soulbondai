@@ -201,22 +201,22 @@ export async function getRemainingLimits(userId: string, plan: string = "free") 
     const chatLimit = await chatLimiter.limit(chatIdentifier, { rate: 0 }) // Check without consuming
     
     limits.chat = {
-      limit: chatLimit.limit || 10,
-      remaining: chatLimit.remaining !== undefined ? chatLimit.remaining : 10,
+      limit: chatLimit.limit || (plan === 'basic' ? 200 : plan === 'free' ? 50 : 999999),
+      remaining: chatLimit.remaining !== undefined ? chatLimit.remaining : (plan === 'basic' ? 200 : plan === 'free' ? 50 : 999999),
       reset: new Date(chatLimit.reset || Date.now() + 24 * 60 * 60 * 1000).toISOString(),
     }
   } catch (error) {
     console.error("Failed to get chat limits:", error)
     // Default chat limits based on plan
     const defaultLimits = {
-      free: 10,
-      basic: 50,
-      premium: 100,
-      ultimate: 200
+      free: 50,
+      basic: 200,
+      premium: 999999,
+      ultimate: 999999
     }
     limits.chat = {
-      limit: defaultLimits[plan as keyof typeof defaultLimits] || 10,
-      remaining: defaultLimits[plan as keyof typeof defaultLimits] || 10,
+      limit: defaultLimits[plan as keyof typeof defaultLimits] || 50,
+      remaining: defaultLimits[plan as keyof typeof defaultLimits] || 50,
       reset: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
     }
   }
