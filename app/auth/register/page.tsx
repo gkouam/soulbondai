@@ -54,7 +54,18 @@ export default function RegisterPage() {
         })
       })
       
-      const data = await res.json()
+      // Check if response is JSON
+      const contentType = res.headers.get("content-type")
+      let data
+      
+      if (contentType && contentType.includes("application/json")) {
+        data = await res.json()
+      } else {
+        // If not JSON, likely an error page
+        const text = await res.text()
+        console.error("Non-JSON response:", text)
+        throw new Error("Server error. Please try again later.")
+      }
       
       if (!res.ok) {
         throw new Error(data.error || "Registration failed")

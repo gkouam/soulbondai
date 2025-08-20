@@ -95,7 +95,7 @@ export async function POST(req: Request) {
     // Hash password
     const passwordHash = await bcrypt.hash(password, 10)
 
-    // Create user
+    // Create user with minimal data first
     const user = await prisma.user.create({
       data: {
         email,
@@ -108,16 +108,22 @@ export async function POST(req: Request) {
             interactionCount: 0,
           },
         },
-        subscription: {
-          create: {
-            plan: "free",
-            status: "active",
-            stripeCustomerId: "", // Will be created when they upgrade
-            currentPeriodEnd: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days
-          },
-        },
       },
     })
+    
+    // Create subscription separately to handle potential issues
+    try {
+      await prisma.subscription.create({
+        data: {
+          userId: user.id,
+          plan: "free",
+          status: "active",
+        },
+      })
+    } catch (subError) {
+      console.error("Failed to create subscription:", subError)
+      // Continue anyway - user can still use the app
+    }
 
     // Send welcome email (non-blocking)
     sendWelcomeEmail(
@@ -145,10 +151,30 @@ export async function POST(req: Request) {
         name: user.name,
       },
     })
-  } catch (error) {
+  } catch (error: any) {
     console.error("Registration error:", error)
+    
+    // Check for specific Prisma errors
+    if (error.code === 'P2002') {
+      return NextResponse.json(
+        { error: "User with this email already exists" },
+        { status: 400 }
+      )
+    }
+    
+    if (error.code === 'P2021') {
+      return NextResponse.json(
+        { error: "Database connection error. Please try again." },
+        { status: 503 }
+      )
+    }
+    
+    // Return a proper JSON error response
     return NextResponse.json(
-      { error: "Failed to register user" },
+      { 
+        error: "Failed to register user", 
+        details: process.env.NODE_ENV === 'development' ? error.message : undefined 
+      },
       { status: 500 }
     )
   }
