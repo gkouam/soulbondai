@@ -1,7 +1,7 @@
 "use client"
 
 import { useSession } from "next-auth/react"
-import { redirect } from "next/navigation"
+import { redirect, useRouter } from "next/navigation"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import {
@@ -40,6 +40,7 @@ export default function AdminLayout({
 }) {
   const { data: session, status } = useSession()
   const pathname = usePathname()
+  const router = useRouter()
   const [isAuthorized, setIsAuthorized] = useState(false)
 
   useEffect(() => {
@@ -82,10 +83,10 @@ export default function AdminLayout({
             const isActive = pathname === item.href
             
             return (
-              <Link
+              <button
                 key={item.href}
-                href={item.href}
-                className={`flex items-center space-x-3 px-4 py-3 rounded-lg mb-1 transition-colors ${
+                onClick={() => router.push(item.href)}
+                className={`w-full flex items-center space-x-3 px-4 py-3 rounded-lg mb-1 transition-colors text-left ${
                   isActive
                     ? "bg-purple-50 text-purple-600 border-l-4 border-purple-600"
                     : "text-gray-700 hover:bg-gray-50"
@@ -93,7 +94,7 @@ export default function AdminLayout({
               >
                 <Icon className="h-5 w-5" />
                 <span className="font-medium">{item.label}</span>
-              </Link>
+              </button>
             )
           })}
         </nav>
