@@ -92,8 +92,19 @@ export async function GET(request: NextRequest) {
       }
     });
 
+    // Serialize activities to ensure Date objects are converted to strings
+    const serializedActivities = activities.map(activity => ({
+      ...activity,
+      createdAt: activity.createdAt.toISOString(),
+      user: activity.user ? {
+        email: activity.user.email,
+        name: activity.user.name,
+        role: activity.user.role
+      } : null
+    }));
+
     return NextResponse.json({
-      activities,
+      activities: serializedActivities,
       pagination: {
         total: totalCount,
         limit,

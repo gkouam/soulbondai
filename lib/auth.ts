@@ -109,9 +109,12 @@ export const authOptions: NextAuthOptions = {
           updatedAt: subscription.updatedAt?.toISOString(),
         } : null
         
-        // Serialize profile data
+        // Serialize profile data (ensure JSON fields are serializable)
         session.user.profile = profile ? {
           ...profile,
+          personalityTest: profile.personalityTest ? JSON.parse(JSON.stringify(profile.personalityTest)) : null,
+          personalityScores: profile.personalityScores ? JSON.parse(JSON.stringify(profile.personalityScores)) : null,
+          preferredTopics: profile.preferredTopics || [],
           dateOfBirth: profile.dateOfBirth?.toISOString(),
           createdAt: profile.createdAt?.toISOString(),
           updatedAt: profile.updatedAt?.toISOString(),

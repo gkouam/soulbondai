@@ -118,8 +118,20 @@ export async function GET(request: NextRequest) {
       }
     });
 
+    // Serialize users to ensure Date objects are converted to strings
+    const serializedUsers = users.map(user => ({
+      ...user,
+      createdAt: user.createdAt?.toISOString(),
+      lastActiveAt: user.lastActiveAt?.toISOString(),
+      emailVerified: user.emailVerified?.toISOString(),
+      subscription: user.subscription ? {
+        ...user.subscription,
+        currentPeriodEnd: user.subscription.currentPeriodEnd?.toISOString()
+      } : null
+    }));
+
     return NextResponse.json({
-      users,
+      users: serializedUsers,
       pagination: {
         page,
         limit,
