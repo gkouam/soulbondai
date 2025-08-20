@@ -146,6 +146,16 @@ export const authOptions: NextAuthOptions = {
         // Fetch and store user role in token
         const dbUser = await prisma.user.findUnique({
           where: { id: user.id },
+          select: { role: true, email: true }
+        })
+        token.role = dbUser?.role || 'USER'
+        token.email = dbUser?.email || user.email
+      }
+      
+      // If token already has an id but no role, fetch it
+      if (token.id && !token.role) {
+        const dbUser = await prisma.user.findUnique({
+          where: { id: token.id },
           select: { role: true }
         })
         token.role = dbUser?.role || 'USER'

@@ -1,9 +1,7 @@
 "use client"
 
 import { useSession } from "next-auth/react"
-import { redirect, useRouter } from "next/navigation"
-import Link from "next/link"
-import { usePathname } from "next/navigation"
+import { useRouter, usePathname } from "next/navigation"
 import {
   LayoutDashboard,
   Users,
@@ -16,9 +14,8 @@ import {
   Brain,
   Mail
 } from "lucide-react"
-import { useEffect, useState } from "react"
 
-const ADMIN_EMAIL = "kouam7@gmail.com"
+const ADMIN_EMAILS = ["kouam7@gmail.com"]
 
 const adminNavItems = [
   { href: "/admin", label: "Dashboard", icon: LayoutDashboard },
@@ -41,17 +38,12 @@ export default function AdminLayout({
   const { data: session, status } = useSession()
   const pathname = usePathname()
   const router = useRouter()
-  const [isAuthorized, setIsAuthorized] = useState(false)
 
-  useEffect(() => {
-    if (status === "loading") return
-    
-    if (!session || session.user?.email !== ADMIN_EMAIL) {
-      redirect("/auth/login")
-    } else {
-      setIsAuthorized(true)
-    }
-  }, [session, status])
+  // Check if user is admin
+  const isAdmin = session?.user?.email && (
+    ADMIN_EMAILS.includes(session.user.email) || 
+    session.user.role === 'ADMIN'
+  )
 
   if (status === "loading") {
     return (
@@ -61,8 +53,39 @@ export default function AdminLayout({
     )
   }
 
-  if (!isAuthorized) {
-    return null
+  if (!session) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <h1 className="text-2xl font-bold text-gray-900 mb-4">Access Denied</h1>
+          <p className="text-gray-600 mb-4">Please log in to access the admin panel.</p>
+          <button
+            onClick={() => router.push("/auth/login")}
+            className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700"
+          >
+            Go to Login
+          </button>
+        </div>
+      </div>
+    )
+  }
+  
+  if (!isAdmin) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <h1 className="text-2xl font-bold text-gray-900 mb-4">Access Denied</h1>
+          <p className="text-gray-600 mb-4">You don't have permission to access this area.</p>
+          <p className="text-sm text-gray-500 mb-4">Current user: {session.user?.email}</p>
+          <button
+            onClick={() => router.push("/dashboard")}
+            className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700"
+          >
+            Go to Dashboard
+          </button>
+        </div>
+      </div>
+    )
   }
 
   return (
