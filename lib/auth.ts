@@ -99,8 +99,24 @@ export const authOptions: NextAuthOptions = {
           select: { phoneNumber: true, phoneVerified: true }
         })
 
-        session.user.subscription = subscription
-        session.user.profile = profile
+        // Serialize subscription data (convert Date objects to strings)
+        session.user.subscription = subscription ? {
+          ...subscription,
+          currentPeriodStart: subscription.currentPeriodStart?.toISOString(),
+          currentPeriodEnd: subscription.currentPeriodEnd?.toISOString(),
+          cancelAt: subscription.cancelAt?.toISOString(),
+          createdAt: subscription.createdAt?.toISOString(),
+          updatedAt: subscription.updatedAt?.toISOString(),
+        } : null
+        
+        // Serialize profile data
+        session.user.profile = profile ? {
+          ...profile,
+          dateOfBirth: profile.dateOfBirth?.toISOString(),
+          createdAt: profile.createdAt?.toISOString(),
+          updatedAt: profile.updatedAt?.toISOString(),
+          lastActiveAt: profile.lastActiveAt?.toISOString(),
+        } : null
         session.user.phoneNumber = user?.phoneNumber
         session.user.phoneVerified = user?.phoneVerified || false
       }
