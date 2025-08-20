@@ -44,8 +44,8 @@ export async function GET() {
       return NextResponse.json({
         plan,
         chat: {
-          limit: defaultLimits[plan as keyof typeof defaultLimits] || 10,
-          remaining: defaultLimits[plan as keyof typeof defaultLimits] || 10,
+          limit: defaultLimits[plan as keyof typeof defaultLimits] || 50,
+          remaining: defaultLimits[plan as keyof typeof defaultLimits] || 50,
           reset: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
         },
         upload: {

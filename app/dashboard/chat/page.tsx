@@ -110,8 +110,8 @@ export default function ChatPage() {
               // Check if it has the expected structure
               if (limitsData.chat && typeof limitsData.chat === 'object') {
                 setRateLimitInfo({
-                  limit: limitsData.chat.limit || 10,
-                  remaining: limitsData.chat.remaining !== undefined ? limitsData.chat.remaining : 10,
+                  limit: limitsData.chat.limit || 50,
+                  remaining: limitsData.chat.remaining !== undefined ? limitsData.chat.remaining : 50,
                   reset: limitsData.chat.reset || new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
                   plan: limitsData.plan || "free"
                 })
@@ -137,8 +137,8 @@ export default function ChatPage() {
             console.error("Failed to parse rate limits:", error)
             // Set default values if rate limits fail
             setRateLimitInfo({
-              limit: 10,
-              remaining: 10,
+              limit: 50,
+              remaining: 50,
               reset: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
               plan: "free"
             })
@@ -146,8 +146,8 @@ export default function ChatPage() {
         } else {
           // If rate limits endpoint fails, set default values
           setRateLimitInfo({
-            limit: 10,
-            remaining: 10,
+            limit: 50,
+            remaining: 50,
             reset: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
             plan: "free"
           })
@@ -313,7 +313,7 @@ export default function ChatPage() {
           toast({
             type: "warning",
             title: "Daily Message Limit Reached",
-            description: `You've used all ${errorData.limit || 10} messages for today. Your limit resets in ${hoursUntilReset} hours.`,
+            description: `You've used all ${errorData.limit || 50} messages for today. Your limit resets in ${hoursUntilReset} hours.`,
             action: {
               label: "Upgrade",
               onClick: () => window.location.href = "/pricing"
@@ -325,7 +325,7 @@ export default function ChatPage() {
             show: true,
             type: "rate_limit",
             title: "You've reached your daily limit",
-            message: `Free users get ${errorData.limit || 10} messages per day. Upgrade to continue chatting with your companion!`,
+            message: `Free users get ${errorData.limit || 50} messages per day. Upgrade to continue chatting with your companion!`,
             benefits: [
               "50-200 messages per day",
               "Voice messages",
