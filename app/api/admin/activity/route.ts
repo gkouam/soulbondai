@@ -94,13 +94,18 @@ export async function GET(request: NextRequest) {
 
     // Serialize activities to ensure Date objects are converted to strings
     const serializedActivities = activities.map(activity => ({
-      ...activity,
+      id: activity.id,
+      userId: activity.userId,
+      action: activity.action,
+      resource: activity.resource,
+      metadata: activity.metadata,
+      ipAddress: activity.ipAddress,
+      userAgent: activity.userAgent,
       createdAt: activity.createdAt.toISOString(),
-      user: activity.user ? {
-        email: activity.user.email,
-        name: activity.user.name,
-        role: activity.user.role
-      } : null
+      type: activity.action, // Add type field for frontend compatibility
+      description: `${activity.action} - ${activity.resource}`, // Add description for display
+      // Properly serialize user as a string (email) for frontend
+      user: activity.user?.email || 'System'
     }));
 
     return NextResponse.json({
