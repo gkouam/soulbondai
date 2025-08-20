@@ -30,6 +30,7 @@ export async function GET(request: NextRequest) {
     const search = searchParams.get('search');
     const role = searchParams.get('role');
     const status = searchParams.get('status');
+    const subscription = searchParams.get('subscription');
     const sortBy = searchParams.get('sortBy') || 'createdAt';
     const sortOrder = searchParams.get('sortOrder') || 'desc';
 
@@ -41,16 +42,21 @@ export async function GET(request: NextRequest) {
     if (search) {
       where.OR = [
         { name: { contains: search, mode: 'insensitive' } },
-        { email: { contains: search, mode: 'insensitive' } }
+        { email: { contains: search, mode: 'insensitive' } },
+        { id: { contains: search, mode: 'insensitive' } }
       ];
     }
     
-    if (role) {
+    if (role && role !== 'all') {
       where.role = role;
     }
     
-    if (status) {
+    if (status && status !== 'all') {
       where.isActive = status === 'active';
+    }
+    
+    if (subscription && subscription !== 'all') {
+      where.subscriptionStatus = subscription;
     }
 
     // Get users with pagination
@@ -60,6 +66,7 @@ export async function GET(request: NextRequest) {
         id: true,
         name: true,
         email: true,
+        image: true,
         role: true,
         isActive: true,
         emailVerified: true,
