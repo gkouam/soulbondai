@@ -39,11 +39,13 @@ interface DashboardStats {
 }
 
 export default function AdminDashboard() {
+  console.log('[ADMIN] AdminDashboard component rendering')
   const [stats, setStats] = useState<DashboardStats | null>(null)
   const [loading, setLoading] = useState(true)
   const [recentActivity, setRecentActivity] = useState<any[]>([])
 
   useEffect(() => {
+    console.log('[ADMIN] useEffect running - fetching data')
     fetchDashboardStats()
     fetchRecentActivity()
     
@@ -57,24 +59,29 @@ export default function AdminDashboard() {
   }, [])
 
   const fetchDashboardStats = async () => {
+    console.log('[ADMIN] Fetching dashboard stats')
     try {
       const res = await fetch("/api/admin/stats")
       if (res.ok) {
         const data = await res.json()
+        console.log('[ADMIN] Stats data received:', data)
         setStats(data)
       }
     } catch (error) {
-      console.error("Failed to fetch stats:", error)
+      console.error("[ADMIN] Failed to fetch stats:", error)
     } finally {
       setLoading(false)
     }
   }
 
   const fetchRecentActivity = async () => {
+    console.log('[ADMIN] Fetching recent activity')
     try {
       const res = await fetch("/api/admin/activity")
       if (res.ok) {
         const data = await res.json()
+        console.log('[ADMIN] Activity data received:', data)
+        console.log('[ADMIN] Activities array:', data.activities)
         setRecentActivity(data.activities || [])
       }
     } catch (error) {
@@ -183,7 +190,9 @@ export default function AdminDashboard() {
         </div>
         <div className="divide-y divide-gray-200">
           {recentActivity.length > 0 ? (
-            recentActivity.map((activity, index) => (
+            recentActivity.map((activity, index) => {
+              console.log('[ADMIN] Mapping activity item:', index, activity);
+              return (
               <div key={index} className="px-6 py-4 hover:bg-gray-50">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center">
@@ -198,7 +207,14 @@ export default function AdminDashboard() {
                         {activity.description}
                       </p>
                       <p className="text-xs text-gray-500">
-                        {activity.user || 'System'}
+                          {(() => {
+                          console.log('[ADMIN] Rendering activity.user:', activity.user, 'Type:', typeof activity.user);
+                          if (!activity.user) return 'System';
+                          if (typeof activity.user === 'object') {
+                            return activity.user.email || activity.user.name || 'Unknown User';
+                          }
+                          return activity.user;
+                        })()}
                       </p>
                     </div>
                   </div>
@@ -208,7 +224,7 @@ export default function AdminDashboard() {
                   </div>
                 </div>
               </div>
-            ))
+            )})
           ) : (
             <div className="px-6 py-8 text-center text-gray-500">
               No recent activity

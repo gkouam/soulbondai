@@ -76,6 +76,9 @@ export const authOptions: NextAuthOptions = {
   ],
   callbacks: {
     async session({ token, session }) {
+      console.log('[AUTH] Session callback start - token:', JSON.stringify(token))
+      console.log('[AUTH] Session callback start - session:', JSON.stringify(session))
+      
       if (token) {
         session.user.id = token.id
         session.user.name = token.name
@@ -83,23 +86,28 @@ export const authOptions: NextAuthOptions = {
         session.user.image = token.picture
         session.user.role = token.role || 'USER'
 
+        console.log('[AUTH] Fetching subscription for userId:', token.id)
         // Get user's subscription status
         const subscription = await prisma.subscription.findUnique({
           where: { userId: token.id },
         })
+        console.log('[AUTH] Raw subscription from DB:', subscription)
         
         // Get user's profile
         const profile = await prisma.profile.findUnique({
           where: { userId: token.id },
         })
+        console.log('[AUTH] Raw profile from DB:', profile)
         
         // Get user's phone verification status
         const user = await prisma.user.findUnique({
           where: { id: token.id },
           select: { phoneNumber: true, phoneVerified: true }
         })
+        console.log('[AUTH] User phone data:', user)
 
         // Serialize subscription data (convert Date objects to strings)
+        console.log('[AUTH] Starting subscription serialization')
         session.user.subscription = subscription ? {
           ...subscription,
           currentPeriodStart: subscription.currentPeriodStart?.toISOString(),
@@ -108,8 +116,10 @@ export const authOptions: NextAuthOptions = {
           createdAt: subscription.createdAt?.toISOString(),
           updatedAt: subscription.updatedAt?.toISOString(),
         } : null
+        console.log('[AUTH] Serialized subscription:', JSON.stringify(session.user.subscription))
         
         // Serialize profile data (ensure JSON fields are serializable)
+        console.log('[AUTH] Starting profile serialization')
         session.user.profile = profile ? {
           ...profile,
           personalityTest: profile.personalityTest ? JSON.parse(JSON.stringify(profile.personalityTest)) : null,
@@ -120,8 +130,12 @@ export const authOptions: NextAuthOptions = {
           updatedAt: profile.updatedAt?.toISOString(),
           lastActiveAt: profile.lastActiveAt?.toISOString(),
         } : null
+        console.log('[AUTH] Serialized profile:', JSON.stringify(session.user.profile))
+        
         session.user.phoneNumber = user?.phoneNumber
         session.user.phoneVerified = user?.phoneVerified || false
+        
+        console.log('[AUTH] Final session object before return:', JSON.stringify(session))
       }
 
       return session
