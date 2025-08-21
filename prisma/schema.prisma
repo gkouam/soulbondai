@@ -39,6 +39,15 @@ model User {
   lastLogin            DateTime?
   dataExportRequested  DateTime?
   deletionRequested    DateTime?
+  
+  // Moderation
+  flagged              Boolean   @default(false)
+  flagReason           String?
+  warningCount         Int       @default(0)
+  suspendedAt          DateTime?
+  suspendedUntil       DateTime?
+  isBanned             Boolean   @default(false)
+  bannedAt             DateTime?
 
   // Relations
   profile               Profile?
@@ -50,6 +59,8 @@ model User {
   payments              Payment[]
   conversionEvents      ConversionEvent[]
   personalityTestResult PersonalityTestResult?
+  sanctions             Sanction[]  // Add sanctions relation
+  personalities         Personality[]  // Add personalities created by user
 
   // Auth
   accounts Account[]
@@ -132,15 +143,30 @@ model Conversation {
   id        String    @id @default(cuid())
   userId    String
   user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  personalityId String?
+  personality Personality? @relation(fields: [personalityId], references: [id], onDelete: SetNull)
   
   title     String?
   messages  Message[]
   archived  Boolean   @default(false)
+  archivedAt DateTime?
+  archivedBy String?
+  
+  isActive  Boolean   @default(true)
+  flagged   Boolean   @default(false)
+  flaggedAt DateTime?
+  flaggedBy String?
+  flagReason String?
+  containsCrisisContent Boolean @default(false)
+  lastMessageAt DateTime @default(now())
   
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
   
   @@index([userId])
+  @@index([personalityId])
+  @@index([lastMessageAt])
+  @@index([flagged])
 }
 
 model Message {
@@ -156,10 +182,16 @@ model Message {
   audioUrl       String?       // For voice messages
   imageUrl       String?       // For photo sharing
   
+  flagged        Boolean       @default(false)
+  flagReason     String?
+  sentiment      String?       // positive, neutral, negative
+  toxicityScore  Float?        // 0.0 to 1.0
+  
   createdAt      DateTime      @default(now())
   
   @@index([conversationId])
   @@index([userId])
+  @@index([flagged])
 }
 
 // Memory System
@@ -362,6 +394,49 @@ model AuditLog {
   @@index([action])
   @@index([createdAt])
   @@index([resourceType, resourceId])
+}
+
+// AI Personalities
+model Personality {
+  id            String   @id @default(cuid())
+  name          String
+  archetype     String   // anxious-romantic, warm-empath, etc.
+  description   String?
+  traits        Json?    // Personality traits configuration
+  userId        String?  // Optional: if user-created
+  user          User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  
+  conversations Conversation[]
+  
+  isDefault     Boolean  @default(false)  // System default personalities
+  isActive      Boolean  @default(true)
+  
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  
+  @@index([archetype])
+  @@index([userId])
+}
+
+// User Sanctions
+model Sanction {
+  id           String    @id @default(cuid())
+  userId       String
+  user         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  type         String    // WARNING, SUSPENSION, BAN
+  reason       String
+  duration     Int?      // Duration in days for suspensions
+  expiresAt    DateTime? // When the sanction expires
+  
+  adminId      String?   // Admin who issued the sanction
+  adminEmail   String    // Admin email for record keeping
+  
+  createdAt    DateTime  @default(now())
+  
+  @@index([userId])
+  @@index([type])
+  @@index([expiresAt])
 }
 
 enum UserRole {
