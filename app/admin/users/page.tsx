@@ -361,9 +361,9 @@ export default function AdminUsersPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="space-y-6">
       {/* Header */}
-      <div className="bg-white border-b">
+      <div className="bg-white rounded-lg shadow-sm border">
         <div className="px-6 py-4">
           <div className="flex items-center justify-between">
             <div>
@@ -398,8 +398,8 @@ export default function AdminUsersPage() {
 
       {/* Stats Cards */}
       {stats && (
-        <div className="px-6 py-4">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             <div className="bg-white rounded-lg p-4 border">
               <div className="flex items-center justify-between">
                 <div>
@@ -449,8 +449,8 @@ export default function AdminUsersPage() {
       )}
 
       {/* Filters and Search */}
-      <div className="px-6 py-4">
-        <div className="bg-white rounded-lg border p-4">
+      <div>
+        <div className="bg-white rounded-lg shadow-sm border p-4">
           <div className="flex flex-wrap gap-4">
             <div className="flex-1 min-w-[300px]">
               <div className="relative">
@@ -528,7 +528,7 @@ export default function AdminUsersPage() {
 
       {/* Bulk Actions Bar */}
       {selectedUsers.length > 0 && (
-        <div className="px-6 py-2">
+        <div>
           <div className="bg-purple-50 border border-purple-200 rounded-lg p-3 flex items-center justify-between">
             <span className="text-sm text-purple-700">
               {selectedUsers.length} user{selectedUsers.length !== 1 ? 's' : ''} selected
@@ -573,8 +573,8 @@ export default function AdminUsersPage() {
       )}
 
       {/* Users Table */}
-      <div className="px-6 pb-6">
-        <div className="bg-white rounded-lg border">
+      <div>
+        <div className="bg-white rounded-lg shadow-sm border">
           {loading ? (
             <div className="flex items-center justify-center py-12">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600"></div>
@@ -824,7 +824,7 @@ export default function AdminUsersPage() {
 
       {/* View User Modal */}
       {viewModalOpen && selectedUser && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[100] p-4">
           <div className="bg-white rounded-lg w-full max-w-2xl max-h-[90vh] overflow-y-auto">
             <div className="p-6 border-b">
               <div className="flex items-center justify-between">
@@ -964,7 +964,7 @@ export default function AdminUsersPage() {
 
       {/* Edit User Modal */}
       {editModalOpen && selectedUser && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[100] p-4">
           <div className="bg-white rounded-lg w-full max-w-md">
             <div className="p-6 border-b">
               <div className="flex items-center justify-between">
@@ -1068,7 +1068,7 @@ export default function AdminUsersPage() {
 
       {/* Delete User Modal */}
       {deleteModalOpen && selectedUser && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[100] p-4">
           <div className="bg-white rounded-lg w-full max-w-md">
             <div className="p-6">
               <div className="flex items-center gap-3 mb-4">
@@ -1110,8 +1110,8 @@ export default function AdminUsersPage() {
 
       {/* Send Email Modal */}
       {emailModalOpen && selectedUser && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg w-full max-w-2xl">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[100] p-4">
+          <div className="bg-white rounded-lg w-full max-w-2xl max-h-[90vh] overflow-y-auto">
             <div className="p-6 border-b">
               <div className="flex items-center justify-between">
                 <h2 className="text-xl font-bold">Send Email</h2>
@@ -1198,7 +1198,7 @@ export default function AdminUsersPage() {
 
       {/* Bulk Action Confirmation Modal */}
       {bulkActionModalOpen && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[100] p-4">
           <div className="bg-white rounded-lg w-full max-w-md">
             <div className="p-6">
               <div className="flex items-center gap-3 mb-4">

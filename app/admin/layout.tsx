@@ -2,6 +2,7 @@
 
 import { useSession } from "next-auth/react"
 import { useRouter, usePathname } from "next/navigation"
+import { useState } from "react"
 import {
   LayoutDashboard,
   Users,
@@ -12,7 +13,9 @@ import {
   AlertCircle,
   DollarSign,
   Brain,
-  Mail
+  Mail,
+  Menu,
+  X
 } from "lucide-react"
 
 const ADMIN_EMAILS = ["kouam7@gmail.com"]
@@ -38,6 +41,7 @@ export default function AdminLayout({
   const { data: session, status } = useSession()
   const pathname = usePathname()
   const router = useRouter()
+  const [sidebarOpen, setSidebarOpen] = useState(false)
 
   // Check if user is admin
   const isAdmin = session?.user?.email && (
@@ -89,46 +93,89 @@ export default function AdminLayout({
   }
 
   return (
-    <div className="flex h-screen bg-gray-50">
+    <div className="flex min-h-screen bg-gray-50">
+      {/* Mobile sidebar backdrop */}
+      {sidebarOpen && (
+        <div 
+          className="fixed inset-0 bg-black bg-opacity-50 z-40 lg:hidden"
+          onClick={() => setSidebarOpen(false)}
+        />
+      )}
+
       {/* Sidebar */}
-      <aside className="w-64 bg-white shadow-lg">
-        <div className="p-6">
-          <div className="flex items-center space-x-2">
-            <Shield className="h-8 w-8 text-purple-600" />
-            <h1 className="text-xl font-bold text-gray-900">Admin Panel</h1>
-          </div>
-          <p className="text-sm text-gray-500 mt-1">{session?.user?.email}</p>
-        </div>
-        
-        <nav className="px-4 pb-6">
-          {adminNavItems.map((item) => {
-            const Icon = item.icon
-            const isActive = pathname === item.href
-            
-            return (
+      <aside className={`
+        fixed lg:static inset-y-0 left-0 z-50
+        transform ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}
+        lg:translate-x-0 transition-transform duration-300 ease-in-out
+        w-64 bg-white shadow-lg
+      `}>
+        <div className="h-full flex flex-col">
+          <div className="p-6">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-2">
+                <Shield className="h-8 w-8 text-purple-600" />
+                <h1 className="text-xl font-bold text-gray-900">Admin Panel</h1>
+              </div>
               <button
-                key={item.href}
-                onClick={() => router.push(item.href)}
-                className={`w-full flex items-center space-x-3 px-4 py-3 rounded-lg mb-1 transition-colors text-left ${
-                  isActive
-                    ? "bg-purple-50 text-purple-600 border-l-4 border-purple-600"
-                    : "text-gray-700 hover:bg-gray-50"
-                }`}
+                onClick={() => setSidebarOpen(false)}
+                className="lg:hidden text-gray-500 hover:text-gray-700"
               >
-                <Icon className="h-5 w-5" />
-                <span className="font-medium">{item.label}</span>
+                <X className="h-6 w-6" />
               </button>
-            )
-          })}
-        </nav>
+            </div>
+            <p className="text-sm text-gray-500 mt-1">{session?.user?.email}</p>
+          </div>
+          
+          <nav className="flex-1 px-4 pb-6 overflow-y-auto">
+            {adminNavItems.map((item) => {
+              const Icon = item.icon
+              const isActive = pathname === item.href
+              
+              return (
+                <button
+                  key={item.href}
+                  onClick={() => {
+                    router.push(item.href)
+                    setSidebarOpen(false)
+                  }}
+                  className={`w-full flex items-center space-x-3 px-4 py-3 rounded-lg mb-1 transition-colors text-left ${
+                    isActive
+                      ? "bg-purple-50 text-purple-600 border-l-4 border-purple-600"
+                      : "text-gray-700 hover:bg-gray-50"
+                  }`}
+                >
+                  <Icon className="h-5 w-5 flex-shrink-0" />
+                  <span className="font-medium">{item.label}</span>
+                </button>
+              )
+            })}
+          </nav>
+        </div>
       </aside>
 
       {/* Main Content */}
-      <main className="flex-1 overflow-y-auto">
-        <div className="p-8">
-          {children}
+      <div className="flex-1 flex flex-col min-w-0">
+        {/* Mobile header */}
+        <div className="lg:hidden bg-white shadow-sm">
+          <div className="flex items-center justify-between p-4">
+            <button
+              onClick={() => setSidebarOpen(true)}
+              className="text-gray-600 hover:text-gray-900"
+            >
+              <Menu className="h-6 w-6" />
+            </button>
+            <h2 className="text-lg font-semibold text-gray-900">Admin Panel</h2>
+            <div className="w-6" /> {/* Spacer for centering */}
+          </div>
         </div>
-      </main>
+
+        {/* Page content */}
+        <main className="flex-1 overflow-x-hidden">
+          <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-8">
+            {children}
+          </div>
+        </main>
+      </div>
     </div>
   )
 }
