@@ -66,14 +66,26 @@ export default function AdminAnalytics() {
       const res = await fetch(`/api/admin/analytics?range=${dateRange}`)
       if (res.ok) {
         const analyticsData = await res.json()
+        console.log('📊 Analytics Data Loaded:', analyticsData)
         setData(analyticsData)
       } else {
-        // Use mock data for now
-        setData(generateMockAnalytics())
+        console.error(`❌ Failed to fetch analytics: ${res.status} ${res.statusText}`)
+        // Only use mock data in development for testing
+        if (process.env.NODE_ENV === 'development') {
+          console.warn('⚠️ Using mock data for development')
+          setData(generateMockAnalytics())
+        } else {
+          throw new Error(`Failed to fetch analytics: ${res.status}`)
+        }
       }
     } catch (error) {
       console.error("Failed to fetch analytics:", error)
-      setData(generateMockAnalytics())
+      // In production, show error state instead of mock data
+      if (process.env.NODE_ENV !== 'development') {
+        setData(null)
+      } else {
+        setData(generateMockAnalytics())
+      }
     } finally {
       setLoading(false)
     }
@@ -159,6 +171,26 @@ export default function AdminAnalytics() {
     return (
       <div className="flex items-center justify-center h-64">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600"></div>
+      </div>
+    )
+  }
+
+  if (!data) {
+    return (
+      <div className="flex flex-col items-center justify-center h-64">
+        <div className="text-red-500 mb-4">
+          <svg className="w-16 h-16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+        </div>
+        <h2 className="text-xl font-semibold text-gray-900 mb-2">Failed to Load Analytics</h2>
+        <p className="text-gray-500 mb-4">Unable to fetch analytics data from the server.</p>
+        <button
+          onClick={() => fetchAnalytics()}
+          className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700"
+        >
+          Retry
+        </button>
       </div>
     )
   }

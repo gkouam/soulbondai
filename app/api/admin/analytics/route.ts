@@ -220,48 +220,61 @@ export async function GET(req: NextRequest) {
       stickiness: mau.length > 0 ? (dau.length / mau.length) * 100 : 0
     }
 
-    // Format data for charts
-    const userGrowthFormatted = Array.from({ length: days }, (_, i) => {
-      const date = subDays(endDate, days - i - 1)
-      const dateStr = date.toLocaleDateString()
-      const dayData = userGrowth.filter(d => 
-        startOfDay(new Date(d.createdAt)).getTime() === startOfDay(date).getTime()
-      )
-      const activeData = activeUsers.filter(d => 
-        startOfDay(new Date(d.createdAt)).getTime() === startOfDay(date).getTime()
-      )
+    // Format data for charts - simplified date handling
+    const userGrowthFormatted = Array.from({ length: Math.min(days, 30) }, (_, i) => {
+      const date = subDays(endDate, Math.min(days, 30) - i - 1)
+      const dateStr = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+      
+      // Count users created on this day
+      const dayUsers = userGrowth.filter(d => {
+        const createdDate = new Date(d.createdAt)
+        return startOfDay(createdDate).toISOString() === startOfDay(date).toISOString()
+      })
+      
+      // Count active users for this day
+      const dayActive = activeUsers.filter(d => {
+        const activityDate = new Date(d.createdAt)
+        return startOfDay(activityDate).toISOString() === startOfDay(date).toISOString()
+      })
       
       return {
         date: dateStr,
-        users: dayData.reduce((sum, item) => sum + item._count, 0),
-        active: activeData.reduce((sum, item) => sum + item._count.userId, 0)
+        users: dayUsers.length,
+        active: dayActive.length
       }
     })
 
-    const revenueGrowth = Array.from({ length: days }, (_, i) => {
-      const date = subDays(endDate, days - i - 1)
-      const dateStr = date.toLocaleDateString()
-      const dayPayments = payments.filter(p => 
-        startOfDay(new Date(p.createdAt)).getTime() === startOfDay(date).getTime()
-      )
+    const revenueGrowth = Array.from({ length: Math.min(days, 30) }, (_, i) => {
+      const date = subDays(endDate, Math.min(days, 30) - i - 1)
+      const dateStr = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+      const dayPayments = payments.filter(p => {
+        const paymentDate = new Date(p.createdAt)
+        return startOfDay(paymentDate).toISOString() === startOfDay(date).toISOString()
+      })
+      
+      const dailyRevenue = dayPayments.reduce((sum, p) => sum + (p.amount / 100), 0)
+      const monthlyRecurring = totalSubs * 19.99 // Average MRR based on premium tier
       
       return {
         date: dateStr,
-        revenue: dayPayments.reduce((sum, p) => sum + (p.amount / 100), 0), // Convert cents to dollars
-        mrr: totalSubs * 19.99 // Average MRR based on premium tier
+        revenue: dailyRevenue,
+        mrr: monthlyRecurring
       }
     })
 
     const messageActivity = Array.from({ length: 7 }, (_, i) => {
       const date = subDays(endDate, 6 - i)
-      const dayMessages = messages.filter(m => 
-        startOfDay(new Date(m.createdAt)).getTime() === startOfDay(date).getTime()
-      )
+      const dayMessages = messages.filter(m => {
+        const messageDate = new Date(m.createdAt)
+        return startOfDay(messageDate).toISOString() === startOfDay(date).toISOString()
+      })
+      
+      const messageCount = dayMessages.length
       
       return {
         date: ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][date.getDay()],
-        messages: dayMessages.reduce((sum, item) => sum + item._count, 0),
-        avgResponseTime: Math.floor(100 + Math.random() * 100) // This would need actual calculation
+        messages: messageCount,
+        avgResponseTime: messageCount > 0 ? Math.floor(50 + Math.random() * 50) : 0 // Simulated response time
       }
     })
 
