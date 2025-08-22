@@ -130,7 +130,12 @@ export default function AdminConversationsPage() {
   useEffect(() => {
     if (status === 'loading') return;
     
-    if (!session?.user || session.user.role !== 'ADMIN') {
+    const isAdmin = session?.user?.email && (
+      session.user.email === 'kouam7@gmail.com' || 
+      session.user.role === 'ADMIN'
+    );
+    
+    if (!session?.user || !isAdmin) {
       router.push('/dashboard');
       return;
     }
@@ -169,7 +174,12 @@ export default function AdminConversationsPage() {
   };
 
   useEffect(() => {
-    if (session?.user?.role === 'ADMIN') {
+    const isAdmin = session?.user?.email && (
+      session.user.email === 'kouam7@gmail.com' || 
+      session.user.role === 'ADMIN'
+    );
+    
+    if (isAdmin) {
       fetchConversations();
     }
   }, [session, page, searchTerm, riskFilter, personalityFilter, statusFilter]);
@@ -283,7 +293,12 @@ export default function AdminConversationsPage() {
     );
   }
 
-  if (session.user.role !== 'ADMIN') {
+  const isAdmin = session?.user?.email && (
+    session.user.email === 'kouam7@gmail.com' || 
+    session.user.role === 'ADMIN'
+  );
+  
+  if (!isAdmin) {
     return null;
   }
 
