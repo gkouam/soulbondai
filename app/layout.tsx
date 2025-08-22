@@ -11,6 +11,7 @@ import { OfflineIndicator } from "@/components/offline-indicator";
 import GoogleAnalytics from "@/components/analytics/google-analytics";
 import FacebookPixel from "@/components/analytics/facebook-pixel";
 import { StructuredData } from "@/components/seo/structured-data";
+import { DebugPanel } from "@/components/debug-panel";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -53,6 +54,7 @@ export default function RootLayout({
             </ReCaptchaProvider>
           </TrackingProvider>
         </Providers>
+        <DebugPanel />
       </body>
     </html>
   );

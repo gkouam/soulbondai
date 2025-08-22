@@ -4,6 +4,7 @@ import { usePageTracking } from '@/hooks/use-page-tracking';
 import { useSession } from 'next-auth/react';
 import { useEffect, Component, ReactNode } from 'react';
 import { logger } from '@/lib/logger';
+import { setupDebugLogging } from '@/lib/api-interceptor';
 
 // Simple error boundary implementation
 class ErrorBoundary extends Component<
@@ -34,6 +35,11 @@ class ErrorBoundary extends Component<
 
 function TrackingProviderInner({ children }: { children: React.ReactNode }) {
   const { data: session } = useSession();
+  
+  // Setup debug logging on mount
+  useEffect(() => {
+    setupDebugLogging();
+  }, []);
   
   // Track page views
   try {

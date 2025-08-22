@@ -20,18 +20,30 @@ export async function middleware(request: NextRequest) {
   const token = await getToken({ req: request })
   const isAuth = !!token
   const userId = token?.sub
+  const userEmail = token?.email
   
-  // Log incoming requests concisely
+  // Enhanced request logging
   const requestInfo = {
-    user: userId || 'anonymous',
+    user: userEmail || userId || 'anonymous',
     auth: isAuth,
+    role: token?.role || 'none',
     query: request.nextUrl.searchParams.toString() || undefined,
-    referrer: request.headers.get('referer') || undefined
+    referrer: request.headers.get('referer') || undefined,
+    userAgent: request.headers.get('user-agent')?.substring(0, 50) || undefined,
+    ip: request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || 'unknown'
   }
   
   // Only log non-static requests
   if (!pathname.startsWith('/_next/') && !pathname.includes('.')) {
-    console.log(`🌐 [MW] ${method} ${pathname}`, requestInfo)
+    console.group(`🌐 [MW] ${method} ${pathname}`)
+    console.log('👤 User:', requestInfo.user)
+    console.log('🔐 Auth:', requestInfo.auth ? 'Yes' : 'No')
+    console.log('👮 Role:', requestInfo.role)
+    if (requestInfo.query) console.log('❓ Query:', requestInfo.query)
+    if (requestInfo.referrer) console.log('🔗 Referrer:', requestInfo.referrer)
+    console.log('🌍 IP:', requestInfo.ip)
+    console.log('⏰ Time:', new Date().toISOString())
+    console.groupEnd()
   }
   
   // Apply rate limiting for API routes
@@ -170,16 +182,20 @@ export async function middleware(request: NextRequest) {
 
   const response = NextResponse.next()
   
-  // Log completion for important routes only
+  // Log completion for all non-static routes
   const duration = Date.now() - startTime
-  if (!pathname.startsWith('/_next/') && !pathname.includes('.') && duration > 100) {
-    console.log(`⚠️ [MW-Slow] ${pathname} took ${duration}ms`)
+  if (!pathname.startsWith('/_next/') && !pathname.includes('.')) {
+    const emoji = duration > 500 ? '🐌' : duration > 100 ? '⚠️' : '⚡'
+    console.log(`${emoji} [MW-Complete] ${pathname} - ${duration}ms`)
   }
   
-  // Add tracking headers to response
+  // Add detailed tracking headers to response
   response.headers.set('x-middleware-duration', duration.toString())
   response.headers.set('x-request-path', pathname)
   response.headers.set('x-request-method', method)
+  response.headers.set('x-user-auth', isAuth ? 'true' : 'false')
+  response.headers.set('x-user-email', userEmail || 'anonymous')
+  response.headers.set('x-response-time', new Date().toISOString())
   
   return response
 }
