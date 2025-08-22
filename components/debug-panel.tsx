@@ -28,8 +28,8 @@ export function DebugPanel() {
     const originalLog = console.log;
     const originalError = console.error;
     const originalWarn = console.warn;
-    const originalGroup = console.group;
-    const originalGroupEnd = console.groupEnd;
+    const originalGroup = console.group || console.log;
+    const originalGroupEnd = console.groupEnd || (() => {});
 
     let groupStack: string[] = [];
 
@@ -60,15 +60,19 @@ export function DebugPanel() {
       }
     };
 
-    console.group = function(...args) {
-      originalGroup.apply(console, args);
-      groupStack.push(args[0] || 'Group');
-    };
+    if (console.group) {
+      console.group = function(...args) {
+        originalGroup.apply(console, args);
+        groupStack.push(args[0] || 'Group');
+      };
+    }
 
-    console.groupEnd = function() {
-      originalGroupEnd.apply(console);
-      groupStack.pop();
-    };
+    if (console.groupEnd) {
+      console.groupEnd = function() {
+        originalGroupEnd.apply(console);
+        groupStack.pop();
+      };
+    }
 
     // Keyboard shortcut to toggle panel
     const handleKeyPress = (e: KeyboardEvent) => {
@@ -83,8 +87,8 @@ export function DebugPanel() {
       console.log = originalLog;
       console.error = originalError;
       console.warn = originalWarn;
-      console.group = originalGroup;
-      console.groupEnd = originalGroupEnd;
+      if (console.group) console.group = originalGroup;
+      if (console.groupEnd) console.groupEnd = originalGroupEnd;
       window.removeEventListener('keydown', handleKeyPress);
     };
   }, [isPaused]);

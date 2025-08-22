@@ -14,8 +14,11 @@ export function setupAPIInterceptor() {
     const method = config?.method || 'GET';
     const startTime = performance.now();
     
-    // Log request details
-    console.group(`🚀 API Request: ${method} ${url}`);
+    // Log request details (with fallback for environments without console.group)
+    const groupStart = console.group || console.log;
+    const groupEnd = console.groupEnd || (() => {});
+    
+    groupStart(`🚀 API Request: ${method} ${url}`);
     console.log('📍 URL:', url);
     console.log('📋 Method:', method);
     
@@ -36,7 +39,7 @@ export function setupAPIInterceptor() {
     
     console.log('⏰ Timestamp:', new Date().toISOString());
     console.log('📍 Called from:', new Error().stack?.split('\n')[2]?.trim());
-    console.groupEnd();
+    groupEnd();
 
     try {
       // Make the actual request
@@ -48,7 +51,7 @@ export function setupAPIInterceptor() {
       
       // Log response details
       const statusEmoji = response.ok ? '✅' : '❌';
-      console.group(`${statusEmoji} API Response: ${method} ${url}`);
+      groupStart(`${statusEmoji} API Response: ${method} ${url}`);
       console.log('📊 Status:', response.status, response.statusText);
       console.log('⏱️ Duration:', `${duration}ms`);
       console.log('📍 URL:', url);
@@ -73,19 +76,19 @@ export function setupAPIInterceptor() {
         // Ignore if can't parse response
       }
       
-      console.groupEnd();
+      groupEnd();
       
       return response;
     } catch (error) {
       const duration = Math.round(performance.now() - startTime);
       
       // Log error details
-      console.group(`💥 API Error: ${method} ${url}`);
+      groupStart(`💥 API Error: ${method} ${url}`);
       console.log('❌ Error:', error);
       console.log('⏱️ Duration:', `${duration}ms`);
       console.log('📍 URL:', url);
       console.log('🔍 Stack:', new Error().stack);
-      console.groupEnd();
+      groupEnd();
       
       throw error;
     }
@@ -111,20 +114,26 @@ export function setupClickTracking() {
       const isExternal = href?.startsWith('http');
       const isAPI = href?.startsWith('/api');
       
-      console.group(`🔗 Link Click: ${href}`);
+      const groupStart = console.group || console.log;
+      const groupEnd = console.groupEnd || (() => {});
+      
+      groupStart(`🔗 Link Click: ${href}`);
       console.log('📍 Href:', href);
       console.log('📝 Text:', link.textContent?.trim());
       console.log('🎯 Target:', link.target || '_self');
       console.log('🌐 Type:', isExternal ? 'External' : isAPI ? 'API' : 'Internal');
       console.log('⏰ Time:', new Date().toISOString());
       console.log('📐 Position:', { x: event.clientX, y: event.clientY });
-      console.groupEnd();
+      groupEnd();
     } else if (button) {
       const buttonText = button.textContent?.trim();
       const buttonType = button.type || 'button';
       const onClick = button.getAttribute('onclick');
       
-      console.group(`🔘 Button Click: ${buttonText}`);
+      const groupStart = console.group || console.log;
+      const groupEnd = console.groupEnd || (() => {});
+      
+      groupStart(`🔘 Button Click: ${buttonText}`);
       console.log('📝 Text:', buttonText);
       console.log('🎯 Type:', buttonType);
       console.log('🎨 Classes:', button.className);
@@ -132,7 +141,7 @@ export function setupClickTracking() {
       if (onClick) console.log('📜 OnClick:', onClick);
       console.log('⏰ Time:', new Date().toISOString());
       console.log('📐 Position:', { x: event.clientX, y: event.clientY });
-      console.groupEnd();
+      groupEnd();
     }
   }, true);
 
@@ -152,13 +161,16 @@ export function setupFormTracking() {
       data[key] = value;
     });
     
-    console.group(`📝 Form Submit: ${form.action || 'unknown'}`);
+    const groupStart = console.group || console.log;
+    const groupEnd = console.groupEnd || (() => {});
+    
+    groupStart(`📝 Form Submit: ${form.action || 'unknown'}`);
     console.log('📍 Action:', form.action);
     console.log('📋 Method:', form.method);
     console.log('📦 Data:', data);
     console.log('🆔 Form ID:', form.id || 'none');
     console.log('⏰ Time:', new Date().toISOString());
-    console.groupEnd();
+    groupEnd();
   }, true);
 
   console.log('🔧 Form Tracking installed - all form submissions will be logged');

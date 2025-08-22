@@ -35,7 +35,11 @@ export async function middleware(request: NextRequest) {
   
   // Only log non-static requests
   if (!pathname.startsWith('/_next/') && !pathname.includes('.')) {
-    console.group(`🌐 [MW] ${method} ${pathname}`)
+    // Fallback for environments without console.group
+    const groupStart = console.group || console.log
+    const groupEnd = console.groupEnd || (() => {})
+    
+    groupStart(`🌐 [MW] ${method} ${pathname}`)
     console.log('👤 User:', requestInfo.user)
     console.log('🔐 Auth:', requestInfo.auth ? 'Yes' : 'No')
     console.log('👮 Role:', requestInfo.role)
@@ -43,7 +47,7 @@ export async function middleware(request: NextRequest) {
     if (requestInfo.referrer) console.log('🔗 Referrer:', requestInfo.referrer)
     console.log('🌍 IP:', requestInfo.ip)
     console.log('⏰ Time:', new Date().toISOString())
-    console.groupEnd()
+    groupEnd()
   }
   
   // Apply rate limiting for API routes
