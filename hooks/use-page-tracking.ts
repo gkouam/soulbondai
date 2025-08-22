@@ -13,26 +13,16 @@ export function usePageTracking() {
   useEffect(() => {
     const startTime = performance.now();
     
-    // Log page load
-    console.log('\n' + '🌟'.repeat(40));
-    console.log('📄 CLIENT PAGE LOAD');
-    console.log('🌟'.repeat(40));
-    console.log(`📍 Path: ${pathname}`);
-    console.log(`⏰ Time: ${new Date().toISOString()}`);
-    console.log(`📊 Load Time: ${Math.round(startTime)}ms`);
+    // Log page load in a more concise way
+    const loadInfo = {
+      path: pathname,
+      time: new Date().toISOString(),
+      loadTime: Math.round(startTime),
+      screen: typeof window !== 'undefined' ? `${window.innerWidth}x${window.innerHeight}` : 'unknown',
+      referrer: typeof document !== 'undefined' ? (document.referrer || 'Direct') : 'unknown'
+    };
     
-    // Log browser information
-    if (typeof window !== 'undefined') {
-      console.log(`🌐 Browser: ${navigator.userAgent.slice(0, 50)}...`);
-      console.log(`📱 Screen: ${window.innerWidth}x${window.innerHeight}`);
-      console.log(`🔗 Referrer: ${document.referrer || 'Direct'}`);
-      
-      // Check if this is a navigation or initial load
-      const isNavigation = window.performance?.navigation?.type === 1;
-      console.log(`🚀 Type: ${isNavigation ? 'Navigation' : 'Initial Load'}`);
-    }
-    
-    console.log('🌟'.repeat(40) + '\n');
+    console.log(`📄 Page Load: ${pathname}`, loadInfo);
     
     // Log to centralized logger
     logger.page({
@@ -51,11 +41,7 @@ export function usePageTracking() {
     return () => {
       const duration = performance.now() - startTime;
       
-      console.log('\n' + '👋'.repeat(30));
-      console.log('📄 CLIENT PAGE LEAVE');
-      console.log(`📍 Path: ${pathname}`);
-      console.log(`⏱️ Time on Page: ${Math.round(duration)}ms`);
-      console.log('👋'.repeat(30) + '\n');
+      console.log(`👋 Page Leave: ${pathname} (${Math.round(duration)}ms)`);
       
       logger.page({
         path: pathname,
@@ -73,20 +59,11 @@ export function usePageTracking() {
  */
 export function useActionTracking(userId?: string) {
   const logAction = (action: string, details?: Record<string, any>) => {
-    console.log('\n' + '🎯'.repeat(25));
-    console.log('USER ACTION');
-    console.log(`🎯 Action: ${action}`);
-    
-    if (userId) {
-      console.log(`👤 User: ${userId}`);
-    }
-    
-    if (details) {
-      console.log('📊 Details:', JSON.stringify(details, null, 2));
-    }
-    
-    console.log(`⏰ Time: ${new Date().toISOString()}`);
-    console.log('🎯'.repeat(25) + '\n');
+    console.log(`🎯 User Action: ${action}`, {
+      user: userId || 'anonymous',
+      ...details,
+      time: new Date().toISOString()
+    });
     
     logger.userJourney(userId || 'anonymous', action, details);
   };
@@ -106,34 +83,20 @@ export function useAPITracking() {
     const startTime = Date.now();
     const method = options?.method || 'GET';
     
-    console.log('\n' + '🚀'.repeat(30));
-    console.log('CLIENT API CALL');
-    console.log(`📍 ${method} ${url}`);
-    
-    if (expectedNavigation) {
-      console.log(`🔄 Expected Navigation: ${expectedNavigation}`);
-    }
-    
-    if (options?.body) {
-      console.log('📦 Request Body:', options.body);
-    }
-    
-    console.log('🚀'.repeat(30));
+    console.log(`🚀 API Call: ${method} ${url}`, {
+      expectedNav: expectedNavigation,
+      hasBody: !!options?.body
+    });
     
     try {
       const response = await fetch(url, options);
       const duration = Date.now() - startTime;
       
-      console.log(`✅ Response: ${response.status} ${response.statusText}`);
-      console.log(`⏱️ Duration: ${duration}ms`);
-      
-      // Check for redirect header
       const redirectTo = response.headers.get('x-redirect-to');
-      if (redirectTo) {
-        console.log(`📍 Server says redirect to: ${redirectTo}`);
-      }
-      
-      console.log('─'.repeat(60) + '\n');
+      console.log(`✅ API Response: ${response.status}`, {
+        duration: `${duration}ms`,
+        redirect: redirectTo || 'none'
+      });
       
       logger.endpoint({
         method,
@@ -147,9 +110,10 @@ export function useAPITracking() {
     } catch (error) {
       const duration = Date.now() - startTime;
       
-      console.log(`❌ Request Failed: ${error}`);
-      console.log(`⏱️ Duration: ${duration}ms`);
-      console.log('─'.repeat(60) + '\n');
+      console.error(`❌ API Failed: ${url}`, {
+        error: error?.message || error,
+        duration: `${duration}ms`
+      });
       
       logger.endpoint({
         method,

@@ -40,10 +40,19 @@ class Logger {
   private formatMessage(entry: LogEntry): string {
     const timestamp = entry.timestamp.toISOString()
     const level = entry.level.toUpperCase().padEnd(5)
+    const isServer = typeof window === 'undefined'
+    
+    // In production and client-side, use simpler format
+    if (!isServer || !this.isDevelopment) {
+      const context = entry.context ? ` ${JSON.stringify(entry.context)}` : ''
+      const error = entry.error ? ` - ${entry.error.message}` : ''
+      return `[${level}] ${entry.message}${context}${error}`
+    }
+    
+    // Server-side development gets full formatting
     const levelColor = this.getLevelColor(entry.level)
     const resetColor = '\x1b[0m'
-    const isServer = typeof window === 'undefined'
-    const environment = isServer ? '[SERVER]' : '[CLIENT]'
+    const environment = '[SERVER]'
     
     // Format context with better readability
     let context = ''
@@ -175,32 +184,22 @@ class Logger {
   // Enhanced endpoint logging
   endpoint(log: EndpointLog) {
     const emoji = log.statusCode && log.statusCode >= 400 ? '❌' : '✅'
-    const message = `${emoji} API Endpoint: ${log.method} ${log.path} -> Status: ${log.statusCode || 'pending'}`
+    const message = `${emoji} API: ${log.method} ${log.path} (${log.statusCode || 'pending'})`
     
-    console.log('\n' + '='.repeat(80))
-    console.log('🚀 ENDPOINT CALLED')
-    console.log('='.repeat(80))
-    
-    this.info(message, {
-      method: log.method,
-      path: log.path,
-      query: log.query,
-      body: log.method !== 'GET' ? log.body : undefined,
-      statusCode: log.statusCode,
+    // Simplified logging
+    const context: any = {
+      status: log.statusCode,
       duration: log.duration ? `${log.duration}ms` : undefined,
       userId: log.userId,
-      sessionId: log.sessionId,
-      ip: log.ip,
-      userAgent: log.userAgent,
-      resultingPage: log.resultingPage,
-      timestamp: new Date().toISOString()
-    })
-
-    if (log.resultingPage) {
-      console.log(`📄 Resulting Page: ${log.resultingPage}`)
+      resultingPage: log.resultingPage
     }
     
-    console.log('='.repeat(80) + '\n')
+    // Remove undefined values
+    Object.keys(context).forEach(key => {
+      if (context[key] === undefined) delete context[key]
+    })
+    
+    this.info(message, context)
   }
 
   // Enhanced page logging
@@ -208,27 +207,20 @@ class Logger {
     const emoji = log.action === 'load' ? '📄' : log.action === 'navigate' ? '🔄' : '👋'
     const message = `${emoji} Page ${log.action}: ${log.path}`
     
-    console.log('\n' + '-'.repeat(60))
-    console.log(`🌐 PAGE ${log.action.toUpperCase()}`)
-    console.log('-'.repeat(60))
-    
-    this.info(message, {
-      path: log.path,
+    const context: any = {
       action: log.action,
-      from: log.from,
-      to: log.to,
-      userId: log.userId,
-      sessionId: log.sessionId,
       loadTime: log.loadTime ? `${log.loadTime}ms` : undefined,
-      metadata: log.metadata,
-      timestamp: new Date().toISOString()
-    })
-    
-    if (log.from && log.to) {
-      console.log(`🔀 Navigation: ${log.from} → ${log.to}`)
+      ...(log.from && { from: log.from }),
+      ...(log.to && { to: log.to }),
+      ...(log.metadata && { metadata: log.metadata })
     }
     
-    console.log('-'.repeat(60) + '\n')
+    // Remove undefined values
+    Object.keys(context).forEach(key => {
+      if (context[key] === undefined) delete context[key]
+    })
+    
+    this.info(message, context)
   }
 
   // Track API call with resulting navigation
@@ -238,46 +230,24 @@ class Logger {
     resultingPage?: string,
     metadata?: Record<string, any>
   ) {
-    console.log('\n' + '▶'.repeat(40))
-    console.log('🔗 API CALL WITH NAVIGATION')
-    console.log('▶'.repeat(40))
-    console.log(`📍 Endpoint: ${method} ${endpoint}`)
+    const message = `🔗 API Nav: ${method} ${endpoint}${resultingPage ? ` → ${resultingPage}` : ''}`
     
-    if (resultingPage) {
-      console.log(`📄 Will Navigate To: ${resultingPage}`)
-    }
-    
-    if (metadata) {
-      console.log('📊 Metadata:', JSON.stringify(metadata, null, 2))
-    }
-    
-    console.log('▶'.repeat(40) + '\n')
-    
-    this.info('API Call with Navigation', {
+    this.info(message, {
       endpoint,
       method,
-      resultingPage,
-      ...metadata
+      ...(resultingPage && { resultingPage }),
+      ...(metadata && metadata)
     })
   }
 
   // Track user journey
   userJourney(userId: string, action: string, details?: Record<string, any>) {
-    console.log('\n' + '👤'.repeat(30))
-    console.log(`USER JOURNEY: ${userId}`)
-    console.log(`🎯 Action: ${action}`)
+    const message = `👤 User ${userId}: ${action}`
     
-    if (details) {
-      console.log('📝 Details:', JSON.stringify(details, null, 2))
-    }
-    
-    console.log('👤'.repeat(30) + '\n')
-    
-    this.info(`User Journey: ${action}`, {
+    this.info(message, {
       userId,
       action,
-      ...details,
-      timestamp: new Date().toISOString()
+      ...(details && details)
     })
   }
 }

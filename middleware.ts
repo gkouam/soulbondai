@@ -21,33 +21,22 @@ export async function middleware(request: NextRequest) {
   const isAuth = !!token
   const userId = token?.sub
   
-  // Log all incoming requests
-  console.log('\n' + '═'.repeat(80))
-  console.log('🔵 MIDDLEWARE: REQUEST INTERCEPTED')
-  console.log('═'.repeat(80))
-  console.log(`📍 ${method} ${pathname}`)
-  console.log(`👤 User: ${userId || 'Anonymous'}`)
-  console.log(`🔐 Authenticated: ${isAuth}`)
-  console.log(`🕐 Time: ${new Date().toISOString()}`)
-  
-  // Log query parameters if present
-  const searchParams = request.nextUrl.searchParams
-  if (searchParams.toString()) {
-    console.log(`🔍 Query: ${searchParams.toString()}`)
+  // Log incoming requests concisely
+  const requestInfo = {
+    user: userId || 'anonymous',
+    auth: isAuth,
+    query: request.nextUrl.searchParams.toString() || undefined,
+    referrer: request.headers.get('referer') || undefined
   }
   
-  // Log referrer if present
-  const referrer = request.headers.get('referer')
-  if (referrer) {
-    console.log(`↩️  Referrer: ${referrer}`)
+  // Only log non-static requests
+  if (!pathname.startsWith('/_next/') && !pathname.includes('.')) {
+    console.log(`🌐 [MW] ${method} ${pathname}`, requestInfo)
   }
-  
-  console.log('═'.repeat(80))
   
   // Apply rate limiting for API routes
   if (pathname.startsWith("/api/")) {
-    console.log('\n🚀 API ROUTE DETECTED')
-    console.log(`📊 Endpoint: ${method} ${pathname}`)
+    console.log(`🚀 [MW-API] ${method} ${pathname}`)
     
     try {
       const identifier = getIdentifier(request, userId)
@@ -97,22 +86,19 @@ export async function middleware(request: NextRequest) {
   
   // Handle legacy auth URLs
   if (request.nextUrl.pathname === "/signin") {
-    console.log('🔄 REDIRECT: /signin -> /auth/login')
     const redirect = request.nextUrl.searchParams.get("redirect") || request.nextUrl.searchParams.get("callbackUrl")
     const url = new URL("/auth/login", request.url)
     if (redirect) {
       url.searchParams.set("callbackUrl", redirect)
-      console.log(`📌 Callback URL: ${redirect}`)
     }
     const duration = Date.now() - startTime
-    console.log(`⏱️  Duration: ${duration}ms\n`)
+    console.log(`🔄 [MW-Redirect] /signin → /auth/login (${duration}ms)`)
     return NextResponse.redirect(url)
   }
   
   if (request.nextUrl.pathname === "/signup") {
-    console.log('🔄 REDIRECT: /signup -> /auth/register')
     const duration = Date.now() - startTime
-    console.log(`⏱️  Duration: ${duration}ms\n`)
+    console.log(`🔄 [MW-Redirect] /signup → /auth/register (${duration}ms)`)
     return NextResponse.redirect(new URL("/auth/register", request.url))
   }
   
@@ -124,19 +110,16 @@ export async function middleware(request: NextRequest) {
 
   // Redirect authenticated users away from auth pages (except reset-password)
   if (isAuthPage && isAuth) {
-    console.log('🔄 REDIRECT: Auth page -> /dashboard (user already authenticated)')
     const duration = Date.now() - startTime
-    console.log(`⏱️  Duration: ${duration}ms\n`)
+    console.log(`🔄 [MW-Redirect] Auth → /dashboard (authenticated) (${duration}ms)`)
     return NextResponse.redirect(new URL("/dashboard", request.url))
   }
 
   // Protect dashboard routes
   if (request.nextUrl.pathname.startsWith("/dashboard") && !isAuth) {
     const from = request.nextUrl.pathname
-    console.log('🔒 PROTECTED ROUTE: Redirecting to login')
-    console.log(`📍 Attempted to access: ${from}`)
     const duration = Date.now() - startTime
-    console.log(`⏱️  Duration: ${duration}ms\n`)
+    console.log(`🔒 [MW-Protected] ${from} → /auth/login (${duration}ms)`)
     return NextResponse.redirect(
       new URL(`/auth/login?callbackUrl=${encodeURIComponent(from)}`, request.url)
     )
@@ -144,9 +127,8 @@ export async function middleware(request: NextRequest) {
   
   // Protect admin routes
   if (request.nextUrl.pathname.startsWith("/admin") && !isAuth) {
-    console.log('🔒 ADMIN ROUTE: Redirecting to login (not authenticated)')
     const duration = Date.now() - startTime
-    console.log(`⏱️  Duration: ${duration}ms\n`)
+    console.log(`🔒 [MW-Admin] Blocked → /auth/login (${duration}ms)`)
     return NextResponse.redirect(new URL("/auth/login", request.url))
   }
 
@@ -188,17 +170,16 @@ export async function middleware(request: NextRequest) {
 
   const response = NextResponse.next()
   
-  // Log successful middleware pass-through
+  // Log completion for important routes only
   const duration = Date.now() - startTime
-  console.log(`✅ MIDDLEWARE COMPLETE: ${pathname}`)
-  console.log(`⏱️  Duration: ${duration}ms`)
+  if (!pathname.startsWith('/_next/') && !pathname.includes('.') && duration > 100) {
+    console.log(`⚠️ [MW-Slow] ${pathname} took ${duration}ms`)
+  }
   
   // Add tracking headers to response
   response.headers.set('x-middleware-duration', duration.toString())
   response.headers.set('x-request-path', pathname)
   response.headers.set('x-request-method', method)
-  
-  console.log('─'.repeat(80) + '\n')
   
   return response
 }

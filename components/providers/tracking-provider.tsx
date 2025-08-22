@@ -4,12 +4,17 @@ import { usePageTracking } from '@/hooks/use-page-tracking';
 import { useSession } from 'next-auth/react';
 import { useEffect } from 'react';
 import { logger } from '@/lib/logger';
+import { ErrorBoundary } from 'react-error-boundary';
 
-export function TrackingProvider({ children }: { children: React.ReactNode }) {
+function TrackingProviderInner({ children }: { children: React.ReactNode }) {
   const { data: session } = useSession();
   
   // Track page views
-  usePageTracking();
+  try {
+    usePageTracking();
+  } catch (error) {
+    console.error('Page tracking error:', error);
+  }
   
   // Track session changes
   useEffect(() => {
@@ -88,4 +93,23 @@ export function TrackingProvider({ children }: { children: React.ReactNode }) {
   }, []);
   
   return <>{children}</>;
+}
+
+// Fallback component for errors
+function ErrorFallback({ error }: { error: Error }) {
+  console.error('Tracking Provider Error:', error);
+  return null; // Don't show anything to user, just log the error
+}
+
+export function TrackingProvider({ children }: { children: React.ReactNode }) {
+  return (
+    <ErrorBoundary
+      FallbackComponent={ErrorFallback}
+      onError={(error, errorInfo) => {
+        console.error('Tracking Provider Error Boundary:', error, errorInfo);
+      }}
+    >
+      <TrackingProviderInner>{children}</TrackingProviderInner>
+    </ErrorBoundary>
+  );
 }
