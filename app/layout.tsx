@@ -3,6 +3,7 @@ import { Inter } from "next/font/google";
 import "./globals.css";
 import { Providers } from "@/components/providers";
 import { ReCaptchaProvider } from "@/components/recaptcha-provider";
+import { TrackingProvider } from "@/components/providers/tracking-provider";
 import { generateMetadata } from "@/lib/metadata";
 import { KeyboardShortcutsHelp } from "@/components/keyboard-shortcuts-help";
 import { SkipNavigation } from "@/components/skip-navigation";
@@ -44,10 +45,11 @@ export default function RootLayout({
         <GoogleAnalytics />
         <FacebookPixel />
         <Providers>
-          <ReCaptchaProvider>
-            <OfflineIndicator />
-            {children}
-            <KeyboardShortcutsHelp />
+          <TrackingProvider>
+            <ReCaptchaProvider>
+              <OfflineIndicator />
+              {children}
+              <KeyboardShortcutsHelp />
           </ReCaptchaProvider>
         </Providers>
       </body>
