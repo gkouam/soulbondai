@@ -8,7 +8,13 @@ export async function GET(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
     
-    if (!session?.user || !(await isAdmin(session.user.email))) {
+    // Check admin access with email OR role
+    const isAdminUser = session?.user?.email && (
+      (await isAdmin(session.user.email)) || 
+      session.user.role === 'ADMIN'
+    );
+    
+    if (!session?.user || !isAdminUser) {
       return NextResponse.json(
         { error: 'Unauthorized. Admin access required.' },
         { status: 401 }
@@ -235,21 +241,21 @@ export async function GET(request: NextRequest) {
       averageResponseTime: 2.3 // Placeholder - would calculate from actual response times
     };
 
-    // Log the admin action
-    await prisma.auditLog.create({
-      data: {
-        userId: session.user.id,
-        action: 'VIEW_CONVERSATIONS',
-        resource: 'conversations',
-        metadata: {
-          filters: { search, risk, personality, status, dateRange },
-          page,
-          limit
-        },
-        ipAddress: request.ip || 'unknown',
-        userAgent: request.headers.get('user-agent') || 'unknown'
-      }
-    });
+    // Log the admin action (commented out - audit log table doesn't exist yet)
+    // await prisma.auditLog.create({
+    //   data: {
+    //     userId: session.user.id,
+    //     action: 'VIEW_CONVERSATIONS',
+    //     resource: 'conversations',
+    //     metadata: {
+    //       filters: { search, risk, personality, status, dateRange },
+    //       page,
+    //       limit
+    //     },
+    //     ipAddress: request.ip || 'unknown',
+    //     userAgent: request.headers.get('user-agent') || 'unknown'
+    //   }
+    // });
 
     return NextResponse.json({
       conversations: processedConversations,
@@ -264,8 +270,18 @@ export async function GET(request: NextRequest) {
 
   } catch (error) {
     console.error('Fetch conversations error:', error);
+    console.error('Error details:', {
+      message: error instanceof Error ? error.message : 'Unknown error',
+      stack: error instanceof Error ? error.stack : undefined
+    });
+    
     return NextResponse.json(
-      { error: 'Failed to fetch conversations' },
+      { 
+        error: 'Failed to fetch conversations',
+        details: process.env.NODE_ENV === 'development' 
+          ? (error instanceof Error ? error.message : String(error))
+          : undefined
+      },
       { status: 500 }
     );
   }
