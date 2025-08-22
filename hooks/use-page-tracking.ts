@@ -13,16 +13,9 @@ export function usePageTracking() {
   useEffect(() => {
     const startTime = performance.now();
     
-    // Log page load in a more concise way
-    const loadInfo = {
-      path: pathname,
-      time: new Date().toISOString(),
-      loadTime: Math.round(startTime),
-      screen: typeof window !== 'undefined' ? `${window.innerWidth}x${window.innerHeight}` : 'unknown',
-      referrer: typeof document !== 'undefined' ? (document.referrer || 'Direct') : 'unknown'
-    };
+    // Simple, clean console logging
+    console.log(`📄 Page Load: ${pathname} (${Math.round(startTime)}ms)`);
     
-    console.log(`📄 Page Load: ${pathname}`, loadInfo);
     
     // Log to centralized logger
     logger.page({
@@ -40,7 +33,6 @@ export function usePageTracking() {
     // Cleanup function to log page leave
     return () => {
       const duration = performance.now() - startTime;
-      
       console.log(`👋 Page Leave: ${pathname} (${Math.round(duration)}ms)`);
       
       logger.page({

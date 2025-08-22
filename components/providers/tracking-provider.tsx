@@ -45,12 +45,7 @@ function TrackingProviderInner({ children }: { children: React.ReactNode }) {
   // Track session changes
   useEffect(() => {
     if (session?.user) {
-      console.log('\n' + '🔐'.repeat(30));
-      console.log('SESSION ESTABLISHED');
-      console.log(`👤 User: ${session.user.email}`);
-      console.log(`🆔 ID: ${session.user.id}`);
-      console.log(`👮 Role: ${session.user.role || 'USER'}`);
-      console.log('🔐'.repeat(30) + '\n');
+      console.log(`🔐 Session: ${session.user.email} (${session.user.role || 'USER'})`);
       
       logger.info('User session established', {
         userId: session.user.id,
@@ -63,12 +58,7 @@ function TrackingProviderInner({ children }: { children: React.ReactNode }) {
   // Track global errors
   useEffect(() => {
     const handleError = (event: ErrorEvent) => {
-      console.error('\n' + '💥'.repeat(30));
-      console.error('GLOBAL ERROR CAUGHT');
-      console.error(`📍 File: ${event.filename}`);
-      console.error(`📝 Message: ${event.message}`);
-      console.error(`📍 Line: ${event.lineno}:${event.colno}`);
-      console.error('💥'.repeat(30) + '\n');
+      console.error(`💥 Global Error: ${event.message} at ${event.filename}:${event.lineno}`);
       
       logger.error('Global Error', new Error(event.message), {
         filename: event.filename,
@@ -78,11 +68,7 @@ function TrackingProviderInner({ children }: { children: React.ReactNode }) {
     };
     
     const handleUnhandledRejection = (event: PromiseRejectionEvent) => {
-      console.error('\n' + '⚠️'.repeat(30));
-      console.error('UNHANDLED PROMISE REJECTION');
-      console.error(`📝 Reason: ${event.reason}`);
-      console.error('⚠️'.repeat(30) + '\n');
-      
+      console.error(`⚠️ Unhandled Promise: ${event.reason}`);
       logger.error('Unhandled Promise Rejection', event.reason);
     };
     
