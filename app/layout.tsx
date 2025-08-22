@@ -50,7 +50,8 @@ export default function RootLayout({
               <OfflineIndicator />
               {children}
               <KeyboardShortcutsHelp />
-          </ReCaptchaProvider>
+            </ReCaptchaProvider>
+          </TrackingProvider>
         </Providers>
       </body>
     </html>
