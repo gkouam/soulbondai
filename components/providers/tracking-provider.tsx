@@ -2,9 +2,35 @@
 
 import { usePageTracking } from '@/hooks/use-page-tracking';
 import { useSession } from 'next-auth/react';
-import { useEffect } from 'react';
+import { useEffect, Component, ReactNode } from 'react';
 import { logger } from '@/lib/logger';
-import { ErrorBoundary } from 'react-error-boundary';
+
+// Simple error boundary implementation
+class ErrorBoundary extends Component<
+  { children: ReactNode; fallback?: ReactNode },
+  { hasError: boolean }
+> {
+  constructor(props: { children: ReactNode; fallback?: ReactNode }) {
+    super(props);
+    this.state = { hasError: false };
+  }
+
+  static getDerivedStateFromError() {
+    return { hasError: true };
+  }
+
+  componentDidCatch(error: Error, errorInfo: { componentStack: string }) {
+    console.error('Error Boundary caught:', error, errorInfo);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return this.props.fallback || null;
+    }
+
+    return this.props.children;
+  }
+}
 
 function TrackingProviderInner({ children }: { children: React.ReactNode }) {
   const { data: session } = useSession();
@@ -26,12 +52,10 @@ function TrackingProviderInner({ children }: { children: React.ReactNode }) {
       console.log(`👮 Role: ${session.user.role || 'USER'}`);
       console.log('🔐'.repeat(30) + '\n');
       
-      logger.auth('login', true, {
+      logger.info('User session established', {
         userId: session.user.id,
-        metadata: {
-          email: session.user.email,
-          role: session.user.role
-        }
+        email: session.user.email,
+        role: session.user.role
       });
     }
   }, [session]);
@@ -95,20 +119,9 @@ function TrackingProviderInner({ children }: { children: React.ReactNode }) {
   return <>{children}</>;
 }
 
-// Fallback component for errors
-function ErrorFallback({ error }: { error: Error }) {
-  console.error('Tracking Provider Error:', error);
-  return null; // Don't show anything to user, just log the error
-}
-
 export function TrackingProvider({ children }: { children: React.ReactNode }) {
   return (
-    <ErrorBoundary
-      FallbackComponent={ErrorFallback}
-      onError={(error, errorInfo) => {
-        console.error('Tracking Provider Error Boundary:', error, errorInfo);
-      }}
-    >
+    <ErrorBoundary>
       <TrackingProviderInner>{children}</TrackingProviderInner>
     </ErrorBoundary>
   );
